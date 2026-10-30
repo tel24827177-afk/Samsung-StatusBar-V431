@@ -1,0 +1,5 @@
+plugins { id 'com.android.application' }
+android { namespace 'com.samsung.colorstatusbar.preview'; compileSdk 35
+ defaultConfig { applicationId 'com.samsung.colorstatusbar.mergedtest'; minSdk 26; targetSdk 32; versionCode 431; versionName '4.31-TEST4-buildcheck' }
+ compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+}
