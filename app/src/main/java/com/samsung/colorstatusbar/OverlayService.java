@@ -174,7 +174,6 @@ public class OverlayService extends AccessibilityService {
         }
         if ("battery_text_size".equals(key) && batteryIcon != null) {
             batteryIcon.setFontSp(opt("battery_text_size", 11, 7, 22));
-        batteryIcon.setStyle(opt("battery_style", 0, 0, 19));
             return;
         }
         if ("corner_radius".equals(key) && overlayBackground != null) {
@@ -305,7 +304,8 @@ public class OverlayService extends AccessibilityService {
         int screenWidthDp = Math.round(getScreenSize()[0] / getResources().getDisplayMetrics().density);
         String screenKey = screenWidthDp >= 600 ? "inner" : "outer";
         int width = opt("battery_size_" + screenKey, 40, 28, 90);
-        LinearLayout.LayoutParams batteryLp = new LinearLayout.LayoutParams(dp(width), dp(Math.max(19, width / 2)));
+        int batteryHeight = opt("battery_height_" + screenKey, Math.max(19, width / 2), 16, 60);
+        LinearLayout.LayoutParams batteryLp = new LinearLayout.LayoutParams(dp(width), dp(batteryHeight));
         batteryLp.leftMargin = dp(opt("battery_spacing", 10, 0, 30));
         batteryLp.leftMargin = Math.max(0, batteryLp.leftMargin + dp(opt("battery_x_" + screenKey, 100, 0, 200) - 100));
         indicators.addView(batteryIcon, batteryLp);
@@ -802,9 +802,8 @@ public class OverlayService extends AccessibilityService {
                     Path wave=new Path();wave.moveTo(34,56);wave.cubicTo(62,12,88,28,110,53);wave.cubicTo(132,79,153,66,171,45);
                     paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(3);paint.setColor(0xFFE1F6FF);c.drawPath(wave,paint);paint.setStyle(Paint.Style.FILL);
                     shape(c,184,39,194,60,4,tint);break;
-                case 1: // concentric lightning energy ring
-                    ring(c,99,50,42,8,0xFF27516E);ring(c,99,50,34,5,cyan);
-                    ring(c,99,50,47,2,0xFF80DDFD);bolt(c,80,25,40,cyan);break;
+                case 1: // V4.30 original: drawn by legacy onDraw branch
+                    break;
                 case 2: // five separate RGB cells
                     shape(c,9,16,181,84,12,0xFF182738);
                     int[] cells={0xFFFF428C,0xFFB24BFF,0xFF4685FF,0xFF31D9E4,0xFF27B38B};
@@ -878,33 +877,24 @@ public class OverlayService extends AccessibilityService {
                     for(int i=0;i<16;i++)shape(c,47+i*6,41,49+i*6,57,1,0xAA123A0D);
                     shape(c,172,38,182,61,3,0xFFB9C5CC);break;
             }
-            // Put percentage below cylindrical/ring artwork when practical; avoid hiding focal motifs.
+            // TEST7: fontSp is real SP converted to drawing coordinates. Keep it
+            // independent of width and height sliders, subject to fitting inside.
             paint.setShader(null);paint.setStyle(Paint.Style.FILL);
             paint.setTypeface(android.graphics.Typeface.create("sans-serif",android.graphics.Typeface.BOLD));
-            paint.setTextAlign(Paint.Align.CENTER);paint.setColor(followRainbow?numberColor:Color.WHITE);
+            paint.setTextAlign(Paint.Align.CENTER);paint.setColor(numberColor);
             String value=level<0?"--":level+"%";
-            // TEST6 font-size fix: map user-selected sp to normalized artwork units.
-            // The entire 200x100 artwork is scaled to the real view, so a fixed
-            // normalized text size (17/19) made the slider appear ineffective.
-            float realHeight = Math.max(1f, h);
-            float desiredPx = fontSp * getResources().getDisplayMetrics().scaledDensity;
-            float normalizedSize = desiredPx * 100f / realHeight;
-            float textX = 105f, textY = 59f;
-            float availableWidth = 126f;
-            if (style == 1 || style == 3 || style == 16) {
-                textX = 100f; textY = 57f; availableWidth = 76f;
-            } else if (style == 7 || style == 12 || style == 13 || style == 14 || style == 15) {
-                textX = 160f; textY = 90f; availableWidth = 72f;
-            } else if (style == 17 || style == 18) {
-                textX = 101f; textY = 93f; availableWidth = 130f;
-            }
-            // Fit horizontally, but don't silently ignore the user's font size.
-            paint.setTextSize(normalizedSize);
-            if (paint.measureText(value) > availableWidth) {
-                paint.setTextSize(normalizedSize * availableWidth / paint.measureText(value));
-            }
-            paint.setShadowLayer(3f, 0f, 1f, Color.BLACK);
-            c.drawText(value, textX, textY, paint);
+            float pxPerUnit = h / 100f;
+            float desired = fontSp * getResources().getDisplayMetrics().scaledDensity / Math.max(.01f, pxPerUnit);
+            float labelX=105f, labelY=59f, maxWidth=140f, maxHeight=48f;
+            if(style==3||style==16) {labelX=100;labelY=58;maxWidth=72;maxHeight=45;}
+            else if(style==7||style==12||style==13||style==14||style==15) {
+                labelX=158;labelY=85;maxWidth=78;maxHeight=34;
+            } else if(style==17||style==18) {labelX=101;labelY=91;maxWidth=135;maxHeight=32;}
+            paint.setTextSize(Math.min(desired,maxHeight));
+            float measured=paint.measureText(value);
+            if(measured>maxWidth) paint.setTextSize(paint.getTextSize()*maxWidth/measured);
+            paint.setShadowLayer(2,0,1,Color.BLACK);
+            c.drawText(value,labelX,labelY,paint);
             paint.clearShadowLayer();
             if(charging && style!=1 && style!=6 && style!=7 && style!=9)bolt(c,168,4,18,gold);
             paint.setShader(null);paint.setStyle(Paint.Style.FILL);canvas.restore();
@@ -915,7 +905,7 @@ public class OverlayService extends AccessibilityService {
             super.onDraw(canvas);
             float w = getWidth(), h = getHeight();
             if (w <= 0 || h <= 0) return;
-            if (style >= 0 && style <= 19) { drawStyledBattery(canvas, w, h); return; }
+            if (style >= 0 && style <= 19 && style != 1) { drawStyledBattery(canvas, w, h); return; }
             float x = w * 0.04f, y = h * 0.16f, right = w * 0.90f, bottom = h * 0.84f;
             float radius = Math.min(h * 0.22f, w * 0.09f);
             paint.setColor(color);
