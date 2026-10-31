@@ -132,14 +132,14 @@ public class StatusBarSettingsActivity extends Activity {
         addSlider("wifi_size", "Wi-Fi 圖標大小", 20, 12, 36, " dp");
         addSlider("cell_size", "手機訊號圖標大小", 20, 12, 36, " dp");
         addSlider("network_text_size", "4G／5G 文字大小", 12, 8, 22, " sp");
-        heading("V4.31 TEST7｜20 款電池樣式", 18);
-        note("此階段為程式繪製的辨識版，尚非 20 款參考照片的精緻原圖；電量百分比會即時更新。");
+        heading("V4.31 TEST8｜20 款電池樣式", 18);
+        note("18、19 號已依參考圖片改為直立金屬電池的向量繪製版；非照片原圖。充電時有動態效果。");
         final String[] batteryStyles = {
             "01 極光波浪", "02 V4.30 原版電池", "03 RGB 五色", "04 數字電量光環",
             "05 金色立體", "06 透明低電量", "07 藍色閃電", "08 藍色電漿閃電",
             "09 七彩透明圓柱", "10 藍色機械能量", "11 經典綠色玻璃", "12 藍色漸層金屬",
             "13 鈦銀藍光圓柱", "14 七彩氣泡液態", "15 紫藍霓虹透明", "16 藍色氣泡科技",
-            "17 RGB 七彩霓虹雙環", "18 冰藍金屬方形 100%", "19 冰藍金屬圓柱 100%", "20 銀黑金屬綠光數位 100%"
+            "17 RGB 七彩霓虹雙環", "18 透明金屬三色能量圓柱", "19 金屬四色電量圓柱", "20 銀黑金屬綠光數位 100%"
         };
         Spinner batteryStyleSpinner = new Spinner(this);
         ArrayAdapter<String> batteryStyleAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, batteryStyles);
@@ -158,16 +158,14 @@ public class StatusBarSettingsActivity extends Activity {
         addSlider("battery_size_outer", "外螢幕電池寬度（拉長／縮短）", 40, 28, 90, " dp");
         addSlider("battery_height_outer", "外螢幕電池高度（拉高／壓扁）", 20, 16, 60, " dp");
         addSlider("battery_x_outer", "外螢幕左右（100=原位）", 100, 0, 200, " dp");
-        addSlider("battery_y_outer", "外螢幕上下（60=原位）", 60, 0, 120, " dp");
         addSlider("battery_size_inner", "內螢幕電池寬度（拉長／縮短）", 40, 28, 90, " dp");
         addSlider("battery_height_inner", "內螢幕電池高度（拉高／壓扁）", 20, 16, 60, " dp");
         addSlider("battery_x_inner", "內螢幕左右（100=原位）", 100, 0, 200, " dp");
-        addSlider("battery_y_inner", "內螢幕上下（60=原位）", 60, 0, 120, " dp");
         addSlider("battery_text_size", "電池內百分比字體", 11, 7, 22, " sp");
         heading("V4.31 TEST1｜電池獨立設定", 18);
         addCheckBox("battery_follow_rainbow", "電池跟隨狀態列七彩（關閉時保持自訂原色）", false);
         addSlider("battery_opacity", "電池透明度", 100, 20, 100, "%");
-        note("寬度和高度可獨立調整電池形狀；左右／上下位置則只移動圖標。數字字體獨立設定，超出圖案時會限制大小以避免裁切。");
+        note("寬度和高度可獨立調整電池形狀；左右位置則只移動圖標。數字字體獨立設定，超出圖案時會限制大小以避免裁切。");
         addSlider("other_icon_size", "藍牙／鬧鐘／震動等圖標大小", 19, 12, 34, " dp");
 
         heading("背景與透明度", 18);

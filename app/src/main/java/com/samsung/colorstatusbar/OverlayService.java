@@ -309,7 +309,6 @@ public class OverlayService extends AccessibilityService {
         batteryLp.leftMargin = dp(opt("battery_spacing", 10, 0, 30));
         batteryLp.leftMargin = Math.max(0, batteryLp.leftMargin + dp(opt("battery_x_" + screenKey, 100, 0, 200) - 100));
         indicators.addView(batteryIcon, batteryLp);
-        batteryIcon.setTranslationY(dp(opt("battery_y_" + screenKey, 60, 0, 120) - 60));
         batteryIcon.setAlpha(opt("battery_opacity", 100, 20, 100) / 100f);
         overlay.addView(indicators, new LinearLayout.LayoutParams(-2, -1));
 
@@ -871,11 +870,39 @@ public class OverlayService extends AccessibilityService {
                 case 18: // icy blue horizontal cylinder + digital percent
                     gradient(c,25,16,175,70,11,0xFF5A697A,0xFF39D5FF,0xFF0476D9,0xFF8799AA);
                     shape(c,20,20,32,66,5,silver);shape(c,168,20,180,66,5,silver);break;
-                case 19: // black chrome digital green can
-                    c.rotate(-12,100,50);gradient(c,30,20,171,76,16,0xFF5D6872,0xFF0C1016,0xFF677580);
-                    shape(c,44,39,44+112*pct,59,4,0xFF72F238);
-                    for(int i=0;i<16;i++)shape(c,47+i*6,41,49+i*6,57,1,0xAA123A0D);
-                    shape(c,172,38,182,61,3,0xFFB9C5CC);break;
+                case 18: // TEST8: upright glass can, silver caps, red/orange/green energy
+                    // Artwork follows the supplied cylindrical battery reference, rendered as vector.
+                    gradient(c,72,12,128,88,10,0xFF386C4E,0xB0C6FFDC,0xFF2B865A,0xFFB5FFE0);
+                    shape(c,78,20,122,81,7,0xC8172522);
+                    if (pct > 0f) {
+                        float top = 80f - 57f * pct;
+                        c.save();c.clipRect(79,top,121,80);
+                        gradient(c,79,20,121,80,5,0xFF70F33D,0xFFFFB728,0xFFEA4A32);
+                        c.restore();
+                    }
+                    gradient(c,68,9,132,23,8,0xFF68767A,0xFFF7FFFD,0xFF7B8A8A,0xFFBCC6C5);
+                    gradient(c,86,3,114,13,4,0xFF536367,0xFFFAFFFF,0xFF5B6869);
+                    gradient(c,69,79,131,91,7,0xFF677477,0xFFE7F0EE,0xFF667476);
+                    paint.setColor(0x77FFFFFF);paint.setStrokeWidth(2);c.drawLine(79,26,79,76,paint);
+                    for(int i=0;i<3;i++) {
+                        float yy=36+i*16;
+                        paint.setColor(0x9954FF2D);c.drawCircle(100,yy,3,paint);
+                    }
+                    break;
+                case 19: // TEST8: upright chrome can with four level-dependent colors
+                    gradient(c,72,13,128,87,8,0xFF3A4047,0xFF7E909A,0xFF202B34,0xFF86949B);
+                    shape(c,77,21,123,81,3,0xFF13191D);
+                    int liquid = level <= 20 ? 0xFFFF4238 : level <= 50 ? 0xFFFF9836
+                        : level <= 85 ? 0xFFB2F538 : 0xFF30BFFF;
+                    if(pct>0) {
+                        float top=80-58*pct;
+                        shape(c,78,top,122,80,2,liquid);
+                        paint.setColor(0x66FFFFFF);paint.setStrokeWidth(2);c.drawLine(80,top+1,119,top+1,paint);
+                    }
+                    gradient(c,69,11,131,23,5,0xFF5B6269,0xFFF5FAFC,0xFF68717A);
+                    shape(c,88,5,112,13,3,0xFFD7E0E3);
+                    gradient(c,69,79,131,89,5,0xFF59616A,0xFFEDF4F7,0xFF606A73);
+                    break;
             }
             // TEST7: fontSp is real SP converted to drawing coordinates. Keep it
             // independent of width and height sliders, subject to fitting inside.
@@ -889,15 +916,28 @@ public class OverlayService extends AccessibilityService {
             if(style==3||style==16) {labelX=100;labelY=58;maxWidth=72;maxHeight=45;}
             else if(style==7||style==12||style==13||style==14||style==15) {
                 labelX=158;labelY=85;maxWidth=78;maxHeight=34;
-            } else if(style==17||style==18) {labelX=101;labelY=91;maxWidth=135;maxHeight=32;}
+            } else if(style==17) {labelX=101;labelY=91;maxWidth=135;maxHeight=32;}
+            else if(style==18||style==19) {labelX=160;labelY=57;maxWidth=72;maxHeight=40;}
             paint.setTextSize(Math.min(desired,maxHeight));
             float measured=paint.measureText(value);
             if(measured>maxWidth) paint.setTextSize(paint.getTextSize()*maxWidth/measured);
             paint.setShadowLayer(2,0,1,Color.BLACK);
             c.drawText(value,labelX,labelY,paint);
             paint.clearShadowLayer();
-            if(charging && style!=1 && style!=6 && style!=7 && style!=9)bolt(c,168,4,18,gold);
+            if(charging && style!=1) {
+                // Animated charging indicator, independent of the four-second status poll.
+                float phase=(System.currentTimeMillis()%1400L)/1400f;
+                int pulse=90+(int)(165*Math.abs(Math.sin(phase*Math.PI)));
+                paint.setAlpha(pulse);
+                bolt(c,171,5+phase*13,18,gold);
+                paint.setAlpha(255);
+                paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(3);
+                paint.setColor(0xFF8EFFC9);
+                c.drawArc(150,20,191,80,-90,360*phase,false,paint);
+                paint.setStyle(Paint.Style.FILL);
+            }
             paint.setShader(null);paint.setStyle(Paint.Style.FILL);canvas.restore();
+            if (charging && style != 1 && getVisibility() == View.VISIBLE) postInvalidateDelayed(90);
         }
         private boolean followRainbow = false;
         void setFollowRainbow(boolean value) { if(followRainbow!=value){followRainbow=value;invalidate();} }
