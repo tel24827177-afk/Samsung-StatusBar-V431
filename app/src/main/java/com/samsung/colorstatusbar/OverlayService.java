@@ -764,68 +764,131 @@ public class OverlayService extends AccessibilityService {
         void setNumberColor(int c) { if (numberColor != c) { numberColor = c; invalidate(); } }
         void setFillColor(int c) { if (fillColor != c) { fillColor = c; invalidate(); } }
         void setFontSp(int sp) { if (fontSp != sp) { fontSp = sp; invalidate(); } }
-        // Lightweight Canvas previews. Reference-image artwork is not embedded in TEST3.
-        private void drawStyledBattery(Canvas c, float w, float h) {
-            final int[] palette = {0xFF32CFFF,0xFF27A9FF,0xFFFF5BD1,0xFF49F77B,
-                0xFFFFC54F,0xFFFF6C40,0xFF229BFF,0xFF48B9FF,0xFF41E6BE,
-                0xFF178ED5,0xFF45F071,0xFF2EABFA,0xFF8FBAFF,0xFF41E6CC,
-                0xFFB26AFF,0xFF4AC8FF,0xFFE85CFF,0xFF72E8FF,0xFF49BFFF,0xFF55F57A};
-            int base = palette[Math.max(0, Math.min(style,19))];
-            // The opt-in rainbow tint is driven by the same color updater as other icons.
-            // Preserve original material colors when rainbow following is disabled.
-            int tint = followRainbow ? color : base;
-            paint.setAntiAlias(true);
-            paint.setStyle(Paint.Style.FILL);
-            paint.setColor(0xD5212530);
-            boolean circle = style == 1 || style == 3 || style == 16;
-            if (circle) {
-                float cx = w/2f, cy = h/2f, r = Math.min(w,h)*0.42f;
-                paint.setStyle(Paint.Style.STROKE);
-                paint.setStrokeWidth(Math.max(2f,h*0.12f));
-                paint.setColor(tint);
-                c.drawCircle(cx,cy,r,paint);
-                paint.setStrokeWidth(Math.max(1f,h*0.04f));
-                paint.setColor(0xFFB4E9FF);
-                if (style == 16) c.drawCircle(cx,cy,r*0.75f,paint);
-            } else {
-                float left=w*.06f, top=h*.15f, right=w*.89f, bottom=h*.85f;
-                paint.setColor(0xD5212530);
-                c.drawRoundRect(left,top,right,bottom,h*.18f,h*.18f,paint);
-                paint.setStyle(Paint.Style.STROKE);
-                paint.setStrokeWidth(Math.max(1.5f,h*.07f));
-                paint.setColor((style==4||style==12||style==17||style==19)?0xFFD4E4ED:tint);
-                c.drawRoundRect(left,top,right,bottom,h*.18f,h*.18f,paint);
-                paint.setStyle(Paint.Style.FILL);
-                c.drawRoundRect(right+w*.01f,h*.35f,w*.97f,h*.65f,h*.03f,h*.03f,paint);
-                float pct=Math.max(0,Math.min(100,level))/100f;
-                if (style==2 || style==9 || style==19) {
-                    for(int i=0;i<5;i++) {
-                        paint.setColor(followRainbow?tint:palette[(i*4+2)%palette.length]);
-                        if(pct*5>i) c.drawRoundRect(left+w*(.05f+i*.145f),top+h*.10f,left+w*(.15f+i*.145f),bottom-h*.10f,h*.03f,h*.03f,paint);
-                    }
-                } else {
-                    paint.setColor(tint);
-                    paint.setAlpha(135);
-                    c.drawRoundRect(left+w*.04f,top+h*.10f,left+w*.04f+(right-left-w*.08f)*pct,bottom-h*.10f,h*.09f,h*.09f,paint);
-                    paint.setAlpha(255);
-                }
-                if (style==1 || style==6 || style==7 || charging) {
-                    Path bolt=new Path();
-                    bolt.moveTo(w*.27f,h*.25f); bolt.lineTo(w*.20f,h*.53f);
-                    bolt.lineTo(w*.28f,h*.53f); bolt.lineTo(w*.23f,h*.77f);
-                    bolt.lineTo(w*.43f,h*.43f); bolt.lineTo(w*.32f,h*.43f); bolt.close();
-                    paint.setColor(0xFFFFFFA0); c.drawPath(bolt,paint);
-                }
+        // TEST6: distinct vector compositions for the twenty reference styles.
+        // The artwork is drawn at normalized 200x100 coordinates, then scaled.
+        private void shape(Canvas c, float l,float t,float r,float b,float rad,int color) {
+            paint.setShader(null); paint.setStyle(Paint.Style.FILL); paint.setColor(color);
+            c.drawRoundRect(l,t,r,b,rad,rad,paint);
+        }
+        private void gradient(Canvas c,float l,float t,float r,float b,float rad,int... colors) {
+            paint.setStyle(Paint.Style.FILL); paint.setColor(Color.WHITE);
+            paint.setShader(new android.graphics.LinearGradient(l,t,r,b,colors,null,android.graphics.Shader.TileMode.CLAMP));
+            c.drawRoundRect(l,t,r,b,rad,rad,paint); paint.setShader(null);
+        }
+        private void ring(Canvas c,float x,float y,float radius,float thickness,int color) {
+            paint.setShader(null); paint.setStyle(Paint.Style.STROKE); paint.setStrokeWidth(thickness);paint.setColor(color);
+            c.drawCircle(x,y,radius,paint);paint.setStyle(Paint.Style.FILL);
+        }
+        private void bolt(Canvas c,float x,float y,float size,int color) {
+            Path b=new Path(); b.moveTo(x+size*.50f,y);b.lineTo(x+size*.14f,y+size*.53f);
+            b.lineTo(x+size*.43f,y+size*.53f);b.lineTo(x+size*.31f,y+size);
+            b.lineTo(x+size*.88f,y+size*.39f);b.lineTo(x+size*.56f,y+size*.39f);b.close();
+            paint.setShader(null);paint.setStyle(Paint.Style.FILL);paint.setColor(color);c.drawPath(b,paint);
+        }
+        private void drawStyledBattery(Canvas canvas,float w,float h) {
+            canvas.save();canvas.scale(w/200f,h/100f);
+            Canvas c=canvas;
+            float pct=Math.max(0,Math.min(100,level))/100f;
+            int cyan=0xFF4FE9FF,blue=0xFF168EFF, silver=0xFFDDEBF5;
+            int green=0xFF80F645,pink=0xFFFF4BCF, gold=0xFFFFC954;
+            int tint=followRainbow?color:cyan;
+            // Each branch has a different silhouette, layout, and material treatment.
+            switch(style) {
+                case 0: // aurora wave capsule
+                    gradient(c,9,15,179,84,30,0xFF104777,0xFF522FDD,0xFF1FADFC);
+                    gradient(c,15,20,15+158*pct,79,25,0xFF31CBFF,0xFF7162FF,0xFF5F25C7);
+                    paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(4);paint.setColor(tint);
+                    c.drawRoundRect(8,13,181,86,28,28,paint);paint.setStyle(Paint.Style.FILL);
+                    Path wave=new Path();wave.moveTo(34,56);wave.cubicTo(62,12,88,28,110,53);wave.cubicTo(132,79,153,66,171,45);
+                    paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(3);paint.setColor(0xFFE1F6FF);c.drawPath(wave,paint);paint.setStyle(Paint.Style.FILL);
+                    shape(c,184,39,194,60,4,tint);break;
+                case 1: // concentric lightning energy ring
+                    ring(c,99,50,42,8,0xFF27516E);ring(c,99,50,34,5,cyan);
+                    ring(c,99,50,47,2,0xFF80DDFD);bolt(c,80,25,40,cyan);break;
+                case 2: // five separate RGB cells
+                    shape(c,9,16,181,84,12,0xFF182738);
+                    int[] cells={0xFFFF428C,0xFFB24BFF,0xFF4685FF,0xFF31D9E4,0xFF27B38B};
+                    for(int i=0;i<5;i++)shape(c,18+i*31,25,43+i*31,75,5,pct*5>i?cells[i]:0xFF28313A);
+                    ring(c,185,50,1,1,cyan);shape(c,181,39,191,61,3,cyan);break;
+                case 3: // percentage halo
+                    ring(c,100,50,40,10,0xFF26333B);
+                    paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(10);paint.setColor(green);
+                    c.drawArc(60,10,140,90,-90,360*pct,false,paint);paint.setStyle(Paint.Style.FILL);break;
+                case 4: // gold beveled premium battery (provisional)
+                    gradient(c,19,20,176,80,18,0xFF8A4C0E,0xFFFFE8A1,0xFFC38320,0xFF78440D);
+                    gradient(c,29,28,29+137*pct,72,10,0xFFFFD64F,0xFFFFA925,0xFFB36C14);
+                    shape(c,179,39,193,61,4,gold);break;
+                case 5: // tilted transparent low charge glass
+                    c.rotate(-15,100,50);gradient(c,62,10,139,90,18,0x55FFFFFF,0xAACAD9E8,0x55FFFFFF);
+                    gradient(c,70,68,131,82,8,0xFFFF934F,0xFFFF4629);
+                    paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(3);paint.setColor(silver);c.drawRoundRect(62,10,139,90,18,18,paint);paint.setStyle(Paint.Style.FILL);break;
+                case 6: // blue rectangular battery with orange bolt
+                    gradient(c,45,9,150,91,5,0xFF83F8FF,0xFF119DD7,0xFF38354C);
+                    shape(c,84,2,111,10,2,silver);bolt(c,75,18,57,0xFFFF8B13);break;
+                case 7: // tall glass plasma vessel
+                    gradient(c,71,6,129,94,12,0xFF173452,0xFF19AFFF,0xFF10234F);
+                    ring(c,100,8,23,4,0xFFB6DAF1);ring(c,100,92,23,4,0xFF70CFFF);
+                    bolt(c,83,27,36,0xFF4FFFFF);break;
+                case 8: // tilted horizontal rainbow glass cylinder
+                    c.rotate(-16,100,50);gradient(c,25,24,169,76,17,0xFFFF4970,0xFFFFE546,0xFF45F26C,0xFF5762FF);
+                    ring(c,27,50,24,6,silver);ring(c,171,50,24,6,0xFFB8C2D5);break;
+                case 9: // segmented blue mechanical energy cylinder
+                    gradient(c,23,23,171,78,13,0xFF0C4175,0xFF26CAFF,0xFF184C9A);
+                    for(int i=0;i<4;i++)shape(c,48+i*27,25,50+i*27,76,1,0x885DCAFF);
+                    shape(c,17,17,35,84,7,0xFF8E99AD);shape(c,165,17,183,84,7,0xFF7B8799);
+                    bolt(c,83,28,34,0xFFFFCF22);break;
+                case 10: // green glass cylinder
+                    gradient(c,23,24,174,76,17,0xFFE7FFFF,0xFF73F445,0xFF32B940,0xFFD9FFFF);
+                    shape(c,33,36,33+129*pct,64,8,0x9954E62D);
+                    paint.setColor(0xCCFFFFFF);paint.setStrokeWidth(3);c.drawLine(40,32,155,32,paint);break;
+                case 11: // metallic blue cylinder
+                    gradient(c,21,22,177,78,15,0xFF7B8C9B,0xFF22DBFF,0xFF0871CB,0xFF8E9FA9);
+                    shape(c,21,22,32,78,5,silver);shape(c,166,22,177,78,5,silver);
+                    paint.setColor(0x99FFFFFF);paint.setStrokeWidth(3);c.drawLine(39,31,160,31,paint);break;
+                case 12: // vertical titanium can
+                    gradient(c,66,12,134,88,15,0xFF3A445C,0xFF38C6F7,0xFF122C74,0xFF9AAABF);
+                    gradient(c,65,10,135,26,12,0xFF64768B,0xFFF3F6FF,0xFF59697C);
+                    gradient(c,65,74,135,90,12,0xFF5A6676,0xFFBFCBD8,0xFF29394A);break;
+                case 13: // transparent upright rainbow liquid bubbles
+                    gradient(c,68,11,132,89,13,0xFFCCD5DC,0xFF44F6EA,0xFFFFE96E,0xFFFF5CBD);
+                    gradient(c,67,8,133,22,9,0xFF6D7583,0xFFE5F1F9,0xFF748294);
+                    for(int i=0;i<8;i++)ring(c,83+(i*13)%36,32+(i*19)%48,2+(i%3),1,0xAAFFFFFF);break;
+                case 14: // slender purple neon transparent tube
+                    c.rotate(15,100,50);gradient(c,84,5,117,95,9,0xFF2A177C,0xFF62E7FF,0xFFFF63D9);
+                    paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(4);paint.setColor(0xFFDA9DFF);
+                    c.drawRoundRect(84,5,117,95,9,9,paint);paint.setStyle(Paint.Style.FILL);break;
+                case 15: // blue bubble science can + dial
+                    ring(c,100,50,47,2,0xFF8CA4BB);gradient(c,76,13,124,87,10,0xFF0C4B86,0xFF24C6FF,0xFF07518F);
+                    gradient(c,75,10,125,23,8,0xFF68798B,0xFFDFEAF0,0xFF788C9D);
+                    for(int i=0;i<8;i++)ring(c,87+(i*11)%27,29+(i*13)%48,2,1,0xAAFFFFFF);break;
+                case 16: // rainbow dual neon rings
+                    int[] rainbow={0xFFFF4977,0xFFFFCF35,0xFF42F48E,0xFF2ED8FF,0xFF9861FF};
+                    for(int i=0;i<5;i++) {paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(7);
+                        paint.setColor(rainbow[i]);c.drawArc(58,8,142,92,-90+i*72,70,false,paint);}
+                    ring(c,100,50,34,2,0xFF7ACBFF);paint.setStyle(Paint.Style.FILL);break;
+                case 17: // diagonal square metallic battery
+                    c.rotate(-30,100,50);gradient(c,55,13,145,87,8,0xFF6C7C8C,0xFF24C6FF,0xFF066FAF);
+                    shape(c,90,7,111,14,2,silver);shape(c,59,19,59+81*pct,78,5,0x7752D8FF);break;
+                case 18: // icy blue horizontal cylinder + digital percent
+                    gradient(c,25,16,175,70,11,0xFF5A697A,0xFF39D5FF,0xFF0476D9,0xFF8799AA);
+                    shape(c,20,20,32,66,5,silver);shape(c,168,20,180,66,5,silver);break;
+                case 19: // black chrome digital green can
+                    c.rotate(-12,100,50);gradient(c,30,20,171,76,16,0xFF5D6872,0xFF0C1016,0xFF677580);
+                    shape(c,44,39,44+112*pct,59,4,0xFF72F238);
+                    for(int i=0;i<16;i++)shape(c,47+i*6,41,49+i*6,57,1,0xAA123A0D);
+                    shape(c,172,38,182,61,3,0xFFB9C5CC);break;
             }
-            paint.setStyle(Paint.Style.FILL);
-            paint.setColor(followRainbow?numberColor:Color.WHITE);
+            // Put percentage below cylindrical/ring artwork when practical; avoid hiding focal motifs.
+            paint.setShader(null);paint.setStyle(Paint.Style.FILL);
             paint.setTypeface(android.graphics.Typeface.create("sans-serif",android.graphics.Typeface.BOLD));
-            paint.setTextAlign(Paint.Align.CENTER);
-            paint.setTextSize(Math.min(fontSp*getResources().getDisplayMetrics().scaledDensity,h*.53f));
+            paint.setTextAlign(Paint.Align.CENTER);paint.setColor(followRainbow?numberColor:Color.WHITE);
             String value=level<0?"--":level+"%";
-            while(paint.measureText(value)>w*.60f && paint.getTextSize()>7f) paint.setTextSize(paint.getTextSize()-.5f);
-            Paint.FontMetrics fm=paint.getFontMetrics();
-            c.drawText(value,w*.48f,h*.5f-(fm.ascent+fm.descent)/2f,paint);
+            if(style==1||style==3||style==16) {paint.setTextSize(19);c.drawText(value,100,57,paint);}
+            else if(style==7||style==12||style==13||style==14||style==15) {paint.setTextSize(17);c.drawText(value,160,90,paint);}
+            else if(style==17||style==18) {paint.setTextSize(17);c.drawText(value,101,93,paint);}
+            else {paint.setTextSize(19);paint.setShadowLayer(3,0,1,Color.BLACK);c.drawText(value,105,59,paint);paint.clearShadowLayer();}
+            if(charging && style!=1 && style!=6 && style!=7 && style!=9)bolt(c,168,4,18,gold);
+            paint.setShader(null);paint.setStyle(Paint.Style.FILL);canvas.restore();
         }
         private boolean followRainbow = false;
         void setFollowRainbow(boolean value) { if(followRainbow!=value){followRainbow=value;invalidate();} }
@@ -833,7 +896,7 @@ public class OverlayService extends AccessibilityService {
             super.onDraw(canvas);
             float w = getWidth(), h = getHeight();
             if (w <= 0 || h <= 0) return;
-            if (style != 0) { drawStyledBattery(canvas, w, h); return; }
+            if (style >= 0 && style <= 19) { drawStyledBattery(canvas, w, h); return; }
             float x = w * 0.04f, y = h * 0.16f, right = w * 0.90f, bottom = h * 0.84f;
             float radius = Math.min(h * 0.22f, w * 0.09f);
             paint.setColor(color);
