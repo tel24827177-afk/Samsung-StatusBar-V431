@@ -883,10 +883,29 @@ public class OverlayService extends AccessibilityService {
             paint.setTypeface(android.graphics.Typeface.create("sans-serif",android.graphics.Typeface.BOLD));
             paint.setTextAlign(Paint.Align.CENTER);paint.setColor(followRainbow?numberColor:Color.WHITE);
             String value=level<0?"--":level+"%";
-            if(style==1||style==3||style==16) {paint.setTextSize(19);c.drawText(value,100,57,paint);}
-            else if(style==7||style==12||style==13||style==14||style==15) {paint.setTextSize(17);c.drawText(value,160,90,paint);}
-            else if(style==17||style==18) {paint.setTextSize(17);c.drawText(value,101,93,paint);}
-            else {paint.setTextSize(19);paint.setShadowLayer(3,0,1,Color.BLACK);c.drawText(value,105,59,paint);paint.clearShadowLayer();}
+            // TEST6 font-size fix: map user-selected sp to normalized artwork units.
+            // The entire 200x100 artwork is scaled to the real view, so a fixed
+            // normalized text size (17/19) made the slider appear ineffective.
+            float realHeight = Math.max(1f, h);
+            float desiredPx = fontSp * getResources().getDisplayMetrics().scaledDensity;
+            float normalizedSize = desiredPx * 100f / realHeight;
+            float textX = 105f, textY = 59f;
+            float availableWidth = 126f;
+            if (style == 1 || style == 3 || style == 16) {
+                textX = 100f; textY = 57f; availableWidth = 76f;
+            } else if (style == 7 || style == 12 || style == 13 || style == 14 || style == 15) {
+                textX = 160f; textY = 90f; availableWidth = 72f;
+            } else if (style == 17 || style == 18) {
+                textX = 101f; textY = 93f; availableWidth = 130f;
+            }
+            // Fit horizontally, but don't silently ignore the user's font size.
+            paint.setTextSize(normalizedSize);
+            if (paint.measureText(value) > availableWidth) {
+                paint.setTextSize(normalizedSize * availableWidth / paint.measureText(value));
+            }
+            paint.setShadowLayer(3f, 0f, 1f, Color.BLACK);
+            c.drawText(value, textX, textY, paint);
+            paint.clearShadowLayer();
             if(charging && style!=1 && style!=6 && style!=7 && style!=9)bolt(c,168,4,18,gold);
             paint.setShader(null);paint.setStyle(Paint.Style.FILL);canvas.restore();
         }
