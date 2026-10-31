@@ -11,8 +11,8 @@ android {
         applicationId 'com.samsung.colorstatusbar.v431test'
         minSdk 26
         targetSdk 32
-        versionCode 431
-        versionName '4.31-TEST5'
+        versionCode 432
+versionName '4.31-TEST6'
     }
 
     compileOptions {
