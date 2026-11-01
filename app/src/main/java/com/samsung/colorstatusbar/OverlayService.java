@@ -922,16 +922,40 @@ public class OverlayService extends AccessibilityService {
             c.drawText(value,labelX,labelY,paint);
             paint.clearShadowLayer();
             if(charging && style!=1) {
-                // Animated charging indicator, independent of the four-second status poll.
+                // TEST9: charging light stays INSIDE each battery silhouette.
+                // Never draw a detached bolt or ring at the right edge.
                 float phase=(System.currentTimeMillis()%1400L)/1400f;
-                int pulse=90+(int)(165*Math.abs(Math.sin(phase*Math.PI)));
-                paint.setAlpha(pulse);
-                bolt(c,171,5+phase*13,18,gold);
-                paint.setAlpha(255);
-                paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(3);
-                paint.setColor(0xFF8EFFC9);
-                c.drawArc(150,20,191,80,-90,360*phase,false,paint);
+                int glow=55+(int)(110*Math.abs(Math.sin(phase*Math.PI)));
+                paint.setShader(null);
+                paint.setStyle(Paint.Style.STROKE);
+                paint.setStrokeCap(Paint.Cap.ROUND);
+                paint.setColor((glow << 24) | 0x00B8FFF0);
+                if (style==3 || style==16) {
+                    // Circular designs: animate their EXISTING circular perimeter.
+                    paint.setStrokeWidth(5f);
+                    c.drawArc(64,14,136,86,-90,300f*phase,false,paint);
+                } else if (style==5 || style==6 || style==7 || style==12
+                        || style==13 || style==14 || style==15 || style==17
+                        || style==18 || style==19) {
+                    // Upright / tilted designs: pulse within the central body.
+                    float left=84f, right=116f, top=23f, bottom=76f;
+                    if(style==5){left=77f;right=123f;top=24f;bottom=73f;}
+                    else if(style==6){left=65f;right=132f;top=22f;bottom=78f;}
+                    else if(style==7 || style==12 || style==13 || style==18 || style==19){
+                        left=83f;right=117f;top=26f;bottom=74f;
+                    } else if(style==15){left=88f;right=112f;top=28f;bottom=73f;}
+                    else if(style==17){left=78f;right=122f;top=26f;bottom=72f;}
+                    float yy=bottom-(bottom-top)*phase;
+                    paint.setStrokeWidth(4f);
+                    c.drawLine(left,yy,right,yy,paint);
+                } else {
+                    // Horizontal cells / cylinders: light moves INSIDE the fill.
+                    float xx=37f+120f*phase;
+                    paint.setStrokeWidth(5f);
+                    c.drawLine(xx,36f,xx,65f,paint);
+                }
                 paint.setStyle(Paint.Style.FILL);
+                paint.setAlpha(255);
             }
             paint.setShader(null);paint.setStyle(Paint.Style.FILL);canvas.restore();
             if (charging && style != 1 && getVisibility() == View.VISIBLE) postInvalidateDelayed(90);
