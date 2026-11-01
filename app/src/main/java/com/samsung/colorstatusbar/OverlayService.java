@@ -867,9 +867,6 @@ public class OverlayService extends AccessibilityService {
                 case 17: // diagonal square metallic battery
                     c.rotate(-30,100,50);gradient(c,55,13,145,87,8,0xFF6C7C8C,0xFF24C6FF,0xFF066FAF);
                     shape(c,90,7,111,14,2,silver);shape(c,59,19,59+81*pct,78,5,0x7752D8FF);break;
-                case 18: // icy blue horizontal cylinder + digital percent
-                    gradient(c,25,16,175,70,11,0xFF5A697A,0xFF39D5FF,0xFF0476D9,0xFF8799AA);
-                    shape(c,20,20,32,66,5,silver);shape(c,168,20,180,66,5,silver);break;
                 case 18: // TEST8: upright glass can, silver caps, red/orange/green energy
                     // Artwork follows the supplied cylindrical battery reference, rendered as vector.
                     gradient(c,72,12,128,88,10,0xFF386C4E,0xB0C6FFDC,0xFF2B865A,0xFFB5FFE0);
