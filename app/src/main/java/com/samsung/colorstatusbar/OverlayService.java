@@ -315,10 +315,14 @@ public class OverlayService extends AccessibilityService {
         String screenKey = screenWidthDp >= 600 ? "inner" : "outer";
         int width = opt("battery_size_" + screenKey, 40, 28, 90);
         int batteryHeight = opt("battery_height_" + screenKey, Math.max(19, width / 2), 16, 60);
-        LinearLayout.LayoutParams batteryLp = new LinearLayout.LayoutParams(dp(width), dp(batteryHeight));
+        // TEST18: style 17 is a circular ring; avoid reserving a wide, empty battery slot.
+        int selectedBatteryStyle = opt("battery_style", 0, 0, 19);
+        int displayedBatteryWidth = selectedBatteryStyle == 16
+            ? Math.min(width, batteryHeight + 6) : width;
+        LinearLayout.LayoutParams batteryLp = new LinearLayout.LayoutParams(dp(displayedBatteryWidth), dp(batteryHeight));
         // TEST15: upright styles sit directly next to the 4G/5G label.
-        batteryLp.leftMargin = dp(isUprightBatteryStyle(opt("battery_style", 0, 0, 19))
-            ? 0 : opt("battery_spacing", 10, 0, 30));
+        batteryLp.leftMargin = dp(selectedBatteryStyle == 16 ? 2
+            : (isUprightBatteryStyle(selectedBatteryStyle) ? 0 : opt("battery_spacing", 10, 0, 30)));
         batteryLp.leftMargin = Math.max(0, batteryLp.leftMargin + dp(opt("battery_x_" + screenKey, 100, 0, 200) - 100));
         indicators.addView(batteryIcon, batteryLp);
         batteryIcon.setAlpha(opt("battery_opacity", 100, 20, 100) / 100f);
@@ -834,7 +838,16 @@ public class OverlayService extends AccessibilityService {
             if (lightning) bolt(c,77,29,42,0xEEFFFFFF);
         }
         private void drawStyledBattery(Canvas canvas,float w,float h) {
-            canvas.save();canvas.scale(w/200f,h/100f);
+            canvas.save();
+            if (style == 16) {
+                // TEST18: preserve a true circle regardless of battery width/height.
+                float scale = Math.min(w / 100f, h / 100f);
+                canvas.translate(w / 2f, h / 2f);
+                canvas.scale(scale, scale);
+                canvas.translate(-100f, -50f);
+            } else {
+                canvas.scale(w / 200f, h / 100f);
+            }
             // TEST15: move upright artwork toward the 4G label; the original
             // artwork was centered in a wide 200-unit drawing area.
             if (isUprightBatteryStyle(style)) canvas.translate(-36f, 0f);
@@ -1001,10 +1014,11 @@ public class OverlayService extends AccessibilityService {
                 maxTextWidth = Math.max(1f, w - 2f);
             } else {
                 paint.setTextAlign(Paint.Align.CENTER);
+                // TEST17: ring percentage stays centered; allow up to 90% of view width so the font slider remains effective.
                 // The ring has its percentage in the circular center.
                 // Other horizontal styles use the center of their main body.
                 textX = w * (style == 16 ? 0.50f : 0.525f);
-                maxTextWidth = Math.max(1f, w * (style == 16 ? 0.43f : 0.70f));
+                maxTextWidth = Math.max(1f, w * (style == 16 ? 0.90f : 0.70f));
             }
             float measured = paint.measureText(value);
             if (measured > maxTextWidth) {
