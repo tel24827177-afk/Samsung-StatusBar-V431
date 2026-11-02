@@ -170,6 +170,7 @@ public class OverlayService extends AccessibilityService {
         }
         if ("battery_style".equals(key) && batteryIcon != null) {
             batteryIcon.setStyle(opt("battery_style", 0, 0, 19));
+            scheduleRebuild(); // Refresh spacing when switching portrait/landscape.
             return;
         }
         if ("battery_text_size".equals(key) && batteryIcon != null) {
@@ -213,6 +214,15 @@ public class OverlayService extends AccessibilityService {
         parent.addView(icon, lp);
         return icon;
     }
+    // TEST12: picker numbers 06,07,08,13,14,15,16,18,19,20.
+    private static boolean isUprightBatteryStyle(int style) {
+        switch (style) {
+            case 5: case 6: case 7: case 12: case 13:
+            case 14: case 15: case 17: case 18: case 19: return true;
+            default: return false;
+        }
+    }
+
     private void showOverlay() {
         removeOverlay();
         int left = opt("left", 12, 0, 80);
@@ -306,7 +316,8 @@ public class OverlayService extends AccessibilityService {
         int width = opt("battery_size_" + screenKey, 40, 28, 90);
         int batteryHeight = opt("battery_height_" + screenKey, Math.max(19, width / 2), 16, 60);
         LinearLayout.LayoutParams batteryLp = new LinearLayout.LayoutParams(dp(width), dp(batteryHeight));
-        batteryLp.leftMargin = dp(opt("battery_spacing", 10, 0, 30));
+        batteryLp.leftMargin = dp(isUprightBatteryStyle(opt("battery_style", 0, 0, 19))
+            ? 2 : opt("battery_spacing", 10, 0, 30));
         batteryLp.leftMargin = Math.max(0, batteryLp.leftMargin + dp(opt("battery_x_" + screenKey, 100, 0, 200) - 100));
         indicators.addView(batteryIcon, batteryLp);
         batteryIcon.setAlpha(opt("battery_opacity", 100, 20, 100) / 100f);
@@ -784,8 +795,46 @@ public class OverlayService extends AccessibilityService {
             b.lineTo(x+size*.88f,y+size*.39f);b.lineTo(x+size*.56f,y+size*.39f);b.close();
             paint.setShader(null);paint.setStyle(Paint.Style.FILL);paint.setColor(color);c.drawPath(b,paint);
         }
+        // TEST11: common full-width horizontal battery, preserves metallic ends and charge level.
+        private int levelColor(float pct) {
+            if (pct <= .20f) return 0xFFFF363B;
+            float t = Math.min(1f,(pct-.20f)/.80f);
+            // Red at 20%, blue at 100%, smoothly interpolated.
+            return Color.rgb(Math.round(255*(1-t)+30*t),
+                Math.round(54*(1-t)+165*t),Math.round(59*(1-t)+255*t));
+        }
+        private void drawHorizontalCell(Canvas c,float pct,int primary,int secondary,
+                boolean rainbowLiquid,int colorCount,boolean lightning) {
+            // Main silhouette spans nearly all the 200-unit view width.
+            gradient(c,11,17,180,83,20,0xFF515D6B,0xFFF5FAFF,0xFF515D6B);
+            gradient(c,21,22,172,78,14,0xFF172A42,secondary,0xFF10253B);
+            c.save();c.clipRect(24,25,24+145*pct,75);
+            if (rainbowLiquid) {
+                // 26 closely spaced color bands based on the rainbow glass reference.
+                for(int i=0;i<colorCount;i++) {
+                    float left=24f+i*145f/colorCount;
+                    float right=24f+(i+1)*145f/colorCount+0.5f;
+                    float hue=(185f+i*300f/(colorCount-1))%360f;
+                    paint.setShader(null);paint.setStyle(Paint.Style.FILL);
+                    paint.setColor(Color.HSVToColor(new float[]{hue,.78f,.98f}));
+                    c.drawRect(left,25,right,75,paint);
+                }
+                paint.setColor(0x88FFFFFF);
+                for(int i=0;i<13;i++)c.drawCircle(32+(i*37)%132,33+(i*19)%37,1.6f+i%3,paint);
+            } else {
+                gradient(c,24,25,169,75,11,primary,secondary,primary);
+            }
+            c.restore();
+            // Glossy reflection and chrome end caps.
+            gradient(c,24,25,169,38,6,0xB8FFFFFF,0x22FFFFFF,0x00FFFFFF);
+            gradient(c,11,17,26,83,8,0xFF48505D,0xFFEDF6FC,0xFF39434F);
+            gradient(c,169,17,183,83,8,0xFF434B57,0xFFFAFFFF,0xFF3C4650);
+            gradient(c,183,39,193,61,4,0xFF4D5964,0xFFE8F0F7,0xFF48505D);
+            if (lightning) bolt(c,77,29,42,0xEEFFFFFF);
+        }
         private void drawStyledBattery(Canvas canvas,float w,float h) {
             canvas.save();canvas.scale(w/200f,h/100f);
+            if (isUprightBatteryStyle(style)) canvas.translate(-44f, 0f);
             Canvas c=canvas;
             float pct=Math.max(0,Math.min(100,level))/100f;
             int cyan=0xFF4FE9FF,blue=0xFF168EFF, silver=0xFFDDEBF5;
@@ -808,10 +857,9 @@ public class OverlayService extends AccessibilityService {
                     int[] cells={0xFFFF428C,0xFFB24BFF,0xFF4685FF,0xFF31D9E4,0xFF27B38B};
                     for(int i=0;i<5;i++)shape(c,18+i*31,25,43+i*31,75,5,pct*5>i?cells[i]:0xFF28313A);
                     ring(c,185,50,1,1,cyan);shape(c,181,39,191,61,3,cyan);break;
-                case 3: // percentage halo
-                    ring(c,100,50,40,10,0xFF26333B);
-                    paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(10);paint.setColor(green);
-                    c.drawArc(60,10,140,90,-90,360*pct,false,paint);paint.setStyle(Paint.Style.FILL);break;
+                case 3: // TEST11: 26-tone horizontal rainbow liquid glass cylinder
+                    drawHorizontalCell(c,pct,0xFF1EACFF,0xFFEE5CBA,true,26,false);
+                    break;
                 case 4: // gold beveled premium battery (provisional)
                     gradient(c,19,20,176,80,18,0xFF8A4C0E,0xFFFFE8A1,0xFFC38320,0xFF78440D);
                     gradient(c,29,28,29+137*pct,72,10,0xFFFFD64F,0xFFFFA925,0xFFB36C14);
@@ -839,10 +887,9 @@ public class OverlayService extends AccessibilityService {
                     gradient(c,23,24,174,76,17,0xFFE7FFFF,0xFF73F445,0xFF32B940,0xFFD9FFFF);
                     shape(c,33,36,33+129*pct,64,8,0x9954E62D);
                     paint.setColor(0xCCFFFFFF);paint.setStrokeWidth(3);c.drawLine(40,32,155,32,paint);break;
-                case 11: // metallic blue cylinder
-                    gradient(c,21,22,177,78,15,0xFF7B8C9B,0xFF22DBFF,0xFF0871CB,0xFF8E9FA9);
-                    shape(c,21,22,32,78,5,silver);shape(c,166,22,177,78,5,silver);
-                    paint.setColor(0x99FFFFFF);paint.setStrokeWidth(3);c.drawLine(39,31,160,31,paint);break;
+                case 11: // TEST11: glossy pink lightning tube, level blue -> red
+                    drawHorizontalCell(c,pct,levelColor(pct),0xFFFF48A9,false,0,true);
+                    break;
                 case 12: // vertical titanium can
                     gradient(c,66,12,134,88,15,0xFF3A445C,0xFF38C6F7,0xFF122C74,0xFF9AAABF);
                     gradient(c,65,10,135,26,12,0xFF64768B,0xFFF3F6FF,0xFF59697C);
@@ -910,55 +957,47 @@ public class OverlayService extends AccessibilityService {
             float pxPerUnit = h / 100f;
             float desired = fontSp * getResources().getDisplayMetrics().scaledDensity / Math.max(.01f, pxPerUnit);
             float labelX=105f, labelY=59f, maxWidth=140f, maxHeight=48f;
-            if(style==3||style==16) {labelX=100;labelY=58;maxWidth=72;maxHeight=45;}
-            else if(style==7||style==12||style==13||style==14||style==15) {
-                labelX=158;labelY=85;maxWidth=78;maxHeight=34;
-            } else if(style==17) {labelX=101;labelY=91;maxWidth=135;maxHeight=32;}
-            else if(style==18||style==19) {labelX=160;labelY=57;maxWidth=72;maxHeight=40;}
+            if(style==16) {labelX=100;labelY=58;maxWidth=72;maxHeight=45;}
+            else if(isUprightBatteryStyle(style)) {
+                labelX=158f; labelY=84f; maxWidth=70f; maxHeight=32f;
+            } else if(style==3||style==11) {
+                labelX=105f; labelY=61f; maxWidth=65f; maxHeight=36f;
+            }
             paint.setTextSize(Math.min(desired,maxHeight));
             float measured=paint.measureText(value);
             if(measured>maxWidth) paint.setTextSize(paint.getTextSize()*maxWidth/measured);
             paint.setShadowLayer(2,0,1,Color.BLACK);
             c.drawText(value,labelX,labelY,paint);
             paint.clearShadowLayer();
-            if(charging && style!=1) {
-                // TEST9: charging light stays INSIDE each battery silhouette.
-                // Never draw a detached bolt or ring at the right edge.
-                float phase=(System.currentTimeMillis()%1400L)/1400f;
-                int glow=55+(int)(110*Math.abs(Math.sin(phase*Math.PI)));
-                paint.setShader(null);
-                paint.setStyle(Paint.Style.STROKE);
+            if (charging && style != 1) {
+                float phase = (System.currentTimeMillis() % 1050L) / 1050f;
+                paint.setShader(null); paint.setStyle(Paint.Style.STROKE);
                 paint.setStrokeCap(Paint.Cap.ROUND);
-                paint.setColor((glow << 24) | 0x00B8FFF0);
-                if (style==3 || style==16) {
-                    // Circular designs: animate their EXISTING circular perimeter.
-                    paint.setStrokeWidth(5f);
-                    c.drawArc(64,14,136,86,-90,300f*phase,false,paint);
-                } else if (style==5 || style==6 || style==7 || style==12
-                        || style==13 || style==14 || style==15 || style==17
-                        || style==18 || style==19) {
-                    // Upright / tilted designs: pulse within the central body.
-                    float left=84f, right=116f, top=23f, bottom=76f;
-                    if(style==5){left=77f;right=123f;top=24f;bottom=73f;}
-                    else if(style==6){left=65f;right=132f;top=22f;bottom=78f;}
-                    else if(style==7 || style==12 || style==13 || style==18 || style==19){
-                        left=83f;right=117f;top=26f;bottom=74f;
-                    } else if(style==15){left=88f;right=112f;top=28f;bottom=73f;}
-                    else if(style==17){left=78f;right=122f;top=26f;bottom=72f;}
-                    float yy=bottom-(bottom-top)*phase;
-                    paint.setStrokeWidth(4f);
-                    c.drawLine(left,yy,right,yy,paint);
+                if (style == 16) {
+                    float start = -90f + phase * 360f;
+                    paint.setColor(0xB000E8FF);paint.setStrokeWidth(12f);
+                    c.drawArc(58,8,142,92,start,85f,false,paint);
+                    paint.setColor(Color.WHITE);paint.setStrokeWidth(5f);
+                    c.drawArc(58,8,142,92,start+10f,55f,false,paint);
+                } else if (isUprightBatteryStyle(style)) {
+                    // Light runs vertically inside the upright glass, not in a side ring.
+                    float yy = 26f + 49f * phase;
+                    paint.setStrokeWidth(8f);paint.setColor(0xB000E8FF);
+                    c.drawLine(91f,yy,109f,yy,paint);
+                    paint.setStrokeWidth(3f);paint.setColor(Color.WHITE);
+                    c.drawLine(93f,yy,107f,yy,paint);
                 } else {
-                    // Horizontal cells / cylinders: light moves INSIDE the fill.
-                    float xx=37f+120f*phase;
-                    paint.setStrokeWidth(5f);
-                    c.drawLine(xx,36f,xx,65f,paint);
+                    float xx=29f+132f*phase;
+                    paint.setStrokeWidth(13f);paint.setColor(0xB000E8FF);
+                    c.drawLine(xx,31f,xx,70f,paint);
+                    paint.setStrokeWidth(5f);paint.setColor(Color.WHITE);
+                    c.drawLine(xx,34f,xx,67f,paint);
                 }
-                paint.setStyle(Paint.Style.FILL);
-                paint.setAlpha(255);
+                paint.setStrokeCap(Paint.Cap.BUTT);
+                paint.setStyle(Paint.Style.FILL);paint.setAlpha(255);
             }
             paint.setShader(null);paint.setStyle(Paint.Style.FILL);canvas.restore();
-            if (charging && style != 1 && getVisibility() == View.VISIBLE) postInvalidateDelayed(90);
+            if (charging && style != 1 && getVisibility() == View.VISIBLE) postInvalidateDelayed(60);
         }
         private boolean followRainbow = false;
         void setFollowRainbow(boolean value) { if(followRainbow!=value){followRainbow=value;invalidate();} }
