@@ -1009,13 +1009,13 @@ public class OverlayService extends AccessibilityService {
                 paint.setTextSize(textPx);
                 // Only prevent clipping at the entire view boundary; do not
                 // constrain text to the battery's artwork height or side slot.
-                float maxTextWidth = Math.max(1f, w - dp(2));
+                float maxTextWidth = Math.max(1f, w - 2f);
                 float measured = paint.measureText(value);
                 if (measured > maxTextWidth) paint.setTextSize(textPx * maxTextWidth / measured);
                 Paint.FontMetrics fm = paint.getFontMetrics();
                 float baseline = h * 0.62f - (fm.ascent + fm.descent) / 2f;
-                paint.setShadowLayer(dp(1), 0, dp(1), Color.BLACK);
-                canvas.drawText(value, w - dp(1), baseline, paint);
+                paint.setShadowLayer(1f, 0, 1f, Color.BLACK);
+                canvas.drawText(value, w - 1f, baseline, paint);
                 paint.clearShadowLayer();
             }
             if (charging && style != 1 && getVisibility() == View.VISIBLE) postInvalidateDelayed(60);
