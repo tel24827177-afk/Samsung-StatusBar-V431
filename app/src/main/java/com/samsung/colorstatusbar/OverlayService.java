@@ -951,25 +951,9 @@ public class OverlayService extends AccessibilityService {
                     gradient(c,69,79,131,89,5,0xFF59616A,0xFFEDF4F7,0xFF606A73);
                     break;
             }
-            // TEST15: upright percentage is drawn in real screen pixels BELOW,
-            // not in the normalized canvas. It no longer shrinks with battery height.
-            if (!isUprightBatteryStyle(style)) {
-                paint.setShader(null);paint.setStyle(Paint.Style.FILL);
-                paint.setTypeface(android.graphics.Typeface.create("sans-serif",android.graphics.Typeface.BOLD));
-                paint.setTextAlign(Paint.Align.CENTER);paint.setColor(numberColor);
-                String value=level<0?"--":level+"%";
-                float pxPerUnit = h / 100f;
-                float desired = fontSp * 1.30f * getResources().getDisplayMetrics().scaledDensity / Math.max(.01f, pxPerUnit);
-                float labelX=105f, labelY=59f, maxWidth=140f, maxHeight=48f;
-                if(style==16) {labelX=100;labelY=58;maxWidth=95;maxHeight=60;}
-                else if(style==3||style==11) {labelX=105f;labelY=61f;maxWidth=95f;maxHeight=58f;}
-                paint.setTextSize(Math.min(desired,maxHeight));
-                float measured=paint.measureText(value);
-                if(measured>maxWidth) paint.setTextSize(paint.getTextSize()*maxWidth/measured);
-                paint.setShadowLayer(2,0,1,Color.BLACK);
-                c.drawText(value,labelX,labelY,paint);
-                paint.clearShadowLayer();
-            }
+            // TEST16: draw percentage in screen pixels after restoring the canvas.
+            // This prevents horizontal and ring styles from shrinking the text
+            // together with the normalized 200x100 battery artwork.
             if (charging && style != 1) {
                 float phase = (System.currentTimeMillis() % 1050L) / 1050f;
                 paint.setShader(null); paint.setStyle(Paint.Style.STROKE);
@@ -998,26 +982,40 @@ public class OverlayService extends AccessibilityService {
                 paint.setStyle(Paint.Style.FILL);paint.setAlpha(255);
             }
             paint.setShader(null);paint.setStyle(Paint.Style.FILL);canvas.restore();
-            if (isUprightBatteryStyle(style)) {
-                // Draw after restoring canvas: text size is genuine SP and is
-                // independent of the battery width/height artwork scaling.
-                paint.setShader(null);paint.setStyle(Paint.Style.FILL);
-                paint.setTypeface(android.graphics.Typeface.create("sans-serif",android.graphics.Typeface.BOLD));
-                paint.setTextAlign(Paint.Align.RIGHT);paint.setColor(numberColor);
-                String value = level < 0 ? "--" : level + "%";
-                float textPx = fontSp * getResources().getDisplayMetrics().scaledDensity;
-                paint.setTextSize(textPx);
-                // Only prevent clipping at the entire view boundary; do not
-                // constrain text to the battery's artwork height or side slot.
-                float maxTextWidth = Math.max(1f, w - 2f);
-                float measured = paint.measureText(value);
-                if (measured > maxTextWidth) paint.setTextSize(textPx * maxTextWidth / measured);
-                Paint.FontMetrics fm = paint.getFontMetrics();
-                float baseline = h * 0.62f - (fm.ascent + fm.descent) / 2f;
-                paint.setShadowLayer(1f, 0, 1f, Color.BLACK);
-                canvas.drawText(value, w - 1f, baseline, paint);
-                paint.clearShadowLayer();
+            // TEST16: shared percentage rendering for all custom styles,
+            // including horizontal batteries and style 17 (index 16) rings.
+            paint.setShader(null);
+            paint.setStyle(Paint.Style.FILL);
+            paint.setTypeface(android.graphics.Typeface.create(
+                "sans-serif", android.graphics.Typeface.BOLD));
+            paint.setColor(numberColor);
+            String value = level < 0 ? "--" : level + "%";
+            float textPx = fontSp * getResources().getDisplayMetrics().scaledDensity;
+            paint.setTextSize(textPx);
+            boolean upright = isUprightBatteryStyle(style);
+            float textX;
+            float maxTextWidth;
+            if (upright) {
+                paint.setTextAlign(Paint.Align.RIGHT);
+                textX = w - 1f;
+                maxTextWidth = Math.max(1f, w - 2f);
+            } else {
+                paint.setTextAlign(Paint.Align.CENTER);
+                // The ring has its percentage in the circular center.
+                // Other horizontal styles use the center of their main body.
+                textX = w * (style == 16 ? 0.50f : 0.525f);
+                maxTextWidth = Math.max(1f, w * (style == 16 ? 0.43f : 0.70f));
             }
+            float measured = paint.measureText(value);
+            if (measured > maxTextWidth) {
+                paint.setTextSize(textPx * maxTextWidth / measured);
+            }
+            Paint.FontMetrics fm = paint.getFontMetrics();
+            float baseline = h * (upright ? 0.62f : 0.50f)
+                - (fm.ascent + fm.descent) / 2f;
+            paint.setShadowLayer(1f, 0, 1f, Color.BLACK);
+            canvas.drawText(value, textX, baseline, paint);
+            paint.clearShadowLayer();
             if (charging && style != 1 && getVisibility() == View.VISIBLE) postInvalidateDelayed(60);
         }
         private boolean followRainbow = false;
@@ -1070,13 +1068,12 @@ public class OverlayService extends AccessibilityService {
             paint.setTypeface(android.graphics.Typeface.create("sans-serif", android.graphics.Typeface.BOLD));
             float scaledDensity = getResources().getDisplayMetrics().scaledDensity;
             // Respect the slider's sp value, constrained only by available battery height.
-            float textSize = Math.min(fontSp * 1.20f * scaledDensity, h * 0.82f);
+            float textSize = fontSp * scaledDensity;
             paint.setTextSize(textSize);
             float available = (right - x) * (charging ? 0.66f : 0.92f);
-            float minTextSize = 6f * scaledDensity;
-            while (paint.measureText(number) > available && textSize > minTextSize) {
-                textSize -= 0.5f * scaledDensity;
-                paint.setTextSize(textSize);
+            float measuredWidth = paint.measureText(number);
+            if (measuredWidth > available && measuredWidth > 0f) {
+                paint.setTextSize(textSize * available / measuredWidth);
             }
             paint.setTextAlign(Paint.Align.CENTER);
             Paint.FontMetrics fm = paint.getFontMetrics();
