@@ -316,8 +316,9 @@ public class OverlayService extends AccessibilityService {
         int width = opt("battery_size_" + screenKey, 40, 28, 90);
         int batteryHeight = opt("battery_height_" + screenKey, Math.max(19, width / 2), 16, 60);
         LinearLayout.LayoutParams batteryLp = new LinearLayout.LayoutParams(dp(width), dp(batteryHeight));
+        // TEST15: upright styles sit directly next to the 4G/5G label.
         batteryLp.leftMargin = dp(isUprightBatteryStyle(opt("battery_style", 0, 0, 19))
-            ? 2 : opt("battery_spacing", 10, 0, 30));
+            ? 0 : opt("battery_spacing", 10, 0, 30));
         batteryLp.leftMargin = Math.max(0, batteryLp.leftMargin + dp(opt("battery_x_" + screenKey, 100, 0, 200) - 100));
         indicators.addView(batteryIcon, batteryLp);
         batteryIcon.setAlpha(opt("battery_opacity", 100, 20, 100) / 100f);
@@ -834,8 +835,9 @@ public class OverlayService extends AccessibilityService {
         }
         private void drawStyledBattery(Canvas canvas,float w,float h) {
             canvas.save();canvas.scale(w/200f,h/100f);
-            // TEST13: shift upright artwork right inside its existing view to reduce empty right side.
-            if (isUprightBatteryStyle(style)) canvas.translate(8f, 0f);
+            // TEST15: move upright artwork toward the 4G label; the original
+            // artwork was centered in a wide 200-unit drawing area.
+            if (isUprightBatteryStyle(style)) canvas.translate(-36f, 0f);
             Canvas c=canvas;
             float pct=Math.max(0,Math.min(100,level))/100f;
             int cyan=0xFF4FE9FF,blue=0xFF168EFF, silver=0xFFDDEBF5;
@@ -949,28 +951,25 @@ public class OverlayService extends AccessibilityService {
                     gradient(c,69,79,131,89,5,0xFF59616A,0xFFEDF4F7,0xFF606A73);
                     break;
             }
-            // TEST7: fontSp is real SP converted to drawing coordinates. Keep it
-            // independent of width and height sliders, subject to fitting inside.
-            paint.setShader(null);paint.setStyle(Paint.Style.FILL);
-            paint.setTypeface(android.graphics.Typeface.create("sans-serif",android.graphics.Typeface.BOLD));
-            paint.setTextAlign(Paint.Align.CENTER);paint.setColor(numberColor);
-            String value=level<0?"--":level+"%";
-            float pxPerUnit = h / 100f;
-            // TEST14: increase apparent percentage size while preserving the existing slider.
-            float desired = fontSp * 1.30f * getResources().getDisplayMetrics().scaledDensity / Math.max(.01f, pxPerUnit);
-            float labelX=105f, labelY=59f, maxWidth=140f, maxHeight=48f;
-            if(style==16) {labelX=100;labelY=58;maxWidth=95;maxHeight=60;}
-            else if(isUprightBatteryStyle(style)) {
-                labelX=157f; labelY=65f; maxWidth=82f; maxHeight=68f;
-            } else if(style==3||style==11) {
-                labelX=105f; labelY=61f; maxWidth=95f; maxHeight=58f;
+            // TEST15: upright percentage is drawn in real screen pixels BELOW,
+            // not in the normalized canvas. It no longer shrinks with battery height.
+            if (!isUprightBatteryStyle(style)) {
+                paint.setShader(null);paint.setStyle(Paint.Style.FILL);
+                paint.setTypeface(android.graphics.Typeface.create("sans-serif",android.graphics.Typeface.BOLD));
+                paint.setTextAlign(Paint.Align.CENTER);paint.setColor(numberColor);
+                String value=level<0?"--":level+"%";
+                float pxPerUnit = h / 100f;
+                float desired = fontSp * 1.30f * getResources().getDisplayMetrics().scaledDensity / Math.max(.01f, pxPerUnit);
+                float labelX=105f, labelY=59f, maxWidth=140f, maxHeight=48f;
+                if(style==16) {labelX=100;labelY=58;maxWidth=95;maxHeight=60;}
+                else if(style==3||style==11) {labelX=105f;labelY=61f;maxWidth=95f;maxHeight=58f;}
+                paint.setTextSize(Math.min(desired,maxHeight));
+                float measured=paint.measureText(value);
+                if(measured>maxWidth) paint.setTextSize(paint.getTextSize()*maxWidth/measured);
+                paint.setShadowLayer(2,0,1,Color.BLACK);
+                c.drawText(value,labelX,labelY,paint);
+                paint.clearShadowLayer();
             }
-            paint.setTextSize(Math.min(desired,maxHeight));
-            float measured=paint.measureText(value);
-            if(measured>maxWidth) paint.setTextSize(paint.getTextSize()*maxWidth/measured);
-            paint.setShadowLayer(2,0,1,Color.BLACK);
-            c.drawText(value,labelX,labelY,paint);
-            paint.clearShadowLayer();
             if (charging && style != 1) {
                 float phase = (System.currentTimeMillis() % 1050L) / 1050f;
                 paint.setShader(null); paint.setStyle(Paint.Style.STROKE);
@@ -999,6 +998,26 @@ public class OverlayService extends AccessibilityService {
                 paint.setStyle(Paint.Style.FILL);paint.setAlpha(255);
             }
             paint.setShader(null);paint.setStyle(Paint.Style.FILL);canvas.restore();
+            if (isUprightBatteryStyle(style)) {
+                // Draw after restoring canvas: text size is genuine SP and is
+                // independent of the battery width/height artwork scaling.
+                paint.setShader(null);paint.setStyle(Paint.Style.FILL);
+                paint.setTypeface(android.graphics.Typeface.create("sans-serif",android.graphics.Typeface.BOLD));
+                paint.setTextAlign(Paint.Align.RIGHT);paint.setColor(numberColor);
+                String value = level < 0 ? "--" : level + "%";
+                float textPx = fontSp * getResources().getDisplayMetrics().scaledDensity;
+                paint.setTextSize(textPx);
+                // Only prevent clipping at the entire view boundary; do not
+                // constrain text to the battery's artwork height or side slot.
+                float maxTextWidth = Math.max(1f, w - dp(2));
+                float measured = paint.measureText(value);
+                if (measured > maxTextWidth) paint.setTextSize(textPx * maxTextWidth / measured);
+                Paint.FontMetrics fm = paint.getFontMetrics();
+                float baseline = h * 0.62f - (fm.ascent + fm.descent) / 2f;
+                paint.setShadowLayer(dp(1), 0, dp(1), Color.BLACK);
+                canvas.drawText(value, w - dp(1), baseline, paint);
+                paint.clearShadowLayer();
+            }
             if (charging && style != 1 && getVisibility() == View.VISIBLE) postInvalidateDelayed(60);
         }
         private boolean followRainbow = false;
