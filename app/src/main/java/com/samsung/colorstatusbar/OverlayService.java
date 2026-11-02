@@ -174,7 +174,7 @@ public class OverlayService extends AccessibilityService {
             return;
         }
         if ("battery_text_size".equals(key) && batteryIcon != null) {
-            batteryIcon.setFontSp(opt("battery_text_size", 11, 7, 22));
+            batteryIcon.setFontSp(opt("battery_text_size", 18, 7, 22));
             return;
         }
         if ("corner_radius".equals(key) && overlayBackground != null) {
@@ -307,7 +307,7 @@ public class OverlayService extends AccessibilityService {
         indicators.addView(networkType);
 
         batteryIcon = new BatteryIcon(this);
-        batteryIcon.setFontSp(opt("battery_text_size", 11, 7, 22));
+        batteryIcon.setFontSp(opt("battery_text_size", 18, 7, 22));
         batteryIcon.setStyle(opt("battery_style", 0, 0, 19));
         // Use physical display width in dp to separate cover and unfolded layouts.
         // A fold/unfold geometry change already triggers a rebuild of this overlay.
@@ -763,7 +763,7 @@ public class OverlayService extends AccessibilityService {
         private int numberColor = Color.WHITE;
         private int fillColor = 0xFFFF8A80;
         private boolean charging;
-        private int fontSp = 11;
+        private int fontSp = 18;
         private int style = 0;
         void setStyle(int s) { if (style != s) { style = s; invalidate(); } }
         BatteryIcon(Context context) { super(context); }
@@ -834,7 +834,8 @@ public class OverlayService extends AccessibilityService {
         }
         private void drawStyledBattery(Canvas canvas,float w,float h) {
             canvas.save();canvas.scale(w/200f,h/100f);
-            if (isUprightBatteryStyle(style)) canvas.translate(-44f, 0f);
+            // TEST13: shift upright artwork right inside its existing view to reduce empty right side.
+            if (isUprightBatteryStyle(style)) canvas.translate(8f, 0f);
             Canvas c=canvas;
             float pct=Math.max(0,Math.min(100,level))/100f;
             int cyan=0xFF4FE9FF,blue=0xFF168EFF, silver=0xFFDDEBF5;
@@ -955,13 +956,14 @@ public class OverlayService extends AccessibilityService {
             paint.setTextAlign(Paint.Align.CENTER);paint.setColor(numberColor);
             String value=level<0?"--":level+"%";
             float pxPerUnit = h / 100f;
-            float desired = fontSp * getResources().getDisplayMetrics().scaledDensity / Math.max(.01f, pxPerUnit);
+            // TEST14: increase apparent percentage size while preserving the existing slider.
+            float desired = fontSp * 1.30f * getResources().getDisplayMetrics().scaledDensity / Math.max(.01f, pxPerUnit);
             float labelX=105f, labelY=59f, maxWidth=140f, maxHeight=48f;
-            if(style==16) {labelX=100;labelY=58;maxWidth=72;maxHeight=45;}
+            if(style==16) {labelX=100;labelY=58;maxWidth=95;maxHeight=60;}
             else if(isUprightBatteryStyle(style)) {
-                labelX=158f; labelY=84f; maxWidth=70f; maxHeight=32f;
+                labelX=157f; labelY=65f; maxWidth=82f; maxHeight=68f;
             } else if(style==3||style==11) {
-                labelX=105f; labelY=61f; maxWidth=65f; maxHeight=36f;
+                labelX=105f; labelY=61f; maxWidth=95f; maxHeight=58f;
             }
             paint.setTextSize(Math.min(desired,maxHeight));
             float measured=paint.measureText(value);
@@ -1049,7 +1051,7 @@ public class OverlayService extends AccessibilityService {
             paint.setTypeface(android.graphics.Typeface.create("sans-serif", android.graphics.Typeface.BOLD));
             float scaledDensity = getResources().getDisplayMetrics().scaledDensity;
             // Respect the slider's sp value, constrained only by available battery height.
-            float textSize = Math.min(fontSp * scaledDensity, h * 0.76f);
+            float textSize = Math.min(fontSp * 1.20f * scaledDensity, h * 0.82f);
             paint.setTextSize(textSize);
             float available = (right - x) * (charging ? 0.66f : 0.92f);
             float minTextSize = 6f * scaledDensity;
