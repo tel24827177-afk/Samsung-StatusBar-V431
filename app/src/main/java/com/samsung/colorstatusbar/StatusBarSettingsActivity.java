@@ -107,6 +107,9 @@ public class StatusBarSettingsActivity extends Activity {
         addSlider("icon_spacing", "各圖標間距", 3, 0, 15, " dp");
         addSlider("battery_spacing", "訊號和電池的額外間距", 10, 0, 30, " dp");
         addSlider("other_icon_size", "藍牙／鬧鐘／震動等圖標大小", 19, 12, 34, " dp");
+        addSlider("wifi_size", "Wi-Fi 圖標大小", 20, 12, 36, " dp");
+        addSlider("cell_size", "手機訊號圖標大小", 20, 12, 36, " dp");
+        addSlider("network_text_size", "4G／5G 文字大小", 12, 8, 22, " sp");
         heading("背景與透明度", 18);
         addSlider("background_opacity", "背景不透明度（0=完全透明）", 76, 0, 100, "%");
         addSlider("corner_radius", "狀態列圓角", 8, 0, 25, " dp");
@@ -133,9 +136,6 @@ public class StatusBarSettingsActivity extends Activity {
         addCheckBox("show_nfc", "顯示 NFC（預設隱藏 N）", false);
         addCheckBox("show_vpn", "顯示 VPN", true);
         addCheckBox("show_dnd", "顯示勿擾模式", true);
-        addSlider("wifi_size", "Wi-Fi 圖標大小", 20, 12, 36, " dp");
-        addSlider("cell_size", "手機訊號圖標大小", 20, 12, 36, " dp");
-        addSlider("network_text_size", "4G／5G 文字大小", 12, 8, 22, " sp");
         heading("V4.31 TEST8｜20 款電池樣式", 18);
         note("18、19 號已依參考圖片改為直立金屬電池的向量繪製版；非照片原圖。充電時有動態效果。");
         final String[] batteryStyles = {
