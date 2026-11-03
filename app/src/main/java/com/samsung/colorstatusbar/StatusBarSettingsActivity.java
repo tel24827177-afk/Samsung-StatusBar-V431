@@ -106,6 +106,10 @@ public class StatusBarSettingsActivity extends Activity {
         addSlider("top_edge_gap", "頂部七彩燈保留空間", 4, 0, 16, " dp");
         addSlider("icon_spacing", "各圖標間距", 3, 0, 15, " dp");
         addSlider("battery_spacing", "訊號和電池的額外間距", 10, 0, 30, " dp");
+        addSlider("other_icon_size", "藍牙／鬧鐘／震動等圖標大小", 19, 12, 34, " dp");
+        heading("背景與透明度", 18);
+        addSlider("background_opacity", "背景不透明度（0=完全透明）", 76, 0, 100, "%");
+        addSlider("corner_radius", "狀態列圓角", 8, 0, 25, " dp");
 
         heading("日期、星期與時間（同一排）", 18);
         addCheckBox("show_date", "顯示年月日（時間右邊）", true);
@@ -166,11 +170,6 @@ public class StatusBarSettingsActivity extends Activity {
         addCheckBox("battery_follow_rainbow", "電池跟隨狀態列七彩（關閉時保持自訂原色）", false);
         addSlider("battery_opacity", "電池透明度", 100, 20, 100, "%");
         note("寬度和高度可獨立調整電池形狀；左右位置則只移動圖標。數字字體獨立設定，超出圖案時會限制大小以避免裁切。");
-        addSlider("other_icon_size", "藍牙／鬧鐘／震動等圖標大小", 19, 12, 34, " dp");
-
-        heading("背景與透明度", 18);
-        addSlider("background_opacity", "背景不透明度（0=完全透明）", 76, 0, 100, "%");
-        addSlider("corner_radius", "狀態列圓角", 8, 0, 25, " dp");
 
         heading("自訂色盤", 18);
         note("先選時間、日期、星期、訊號、電池或各個圖標，再點色塊／輸入 #RRGGBB 儲存。每項都有自己的顏色；更改後會立即更新。若開啟下方的『全部圖標七彩』，會暫時蓋過單獨選色，但不會刪除你的顏色。");
