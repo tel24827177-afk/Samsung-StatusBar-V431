@@ -860,7 +860,7 @@ public class OverlayService extends AccessibilityService {
             // TEST26: use the exact poster-derived 38 neon frame, with no baked-in percentage.
             if (style == 37) {
                 if (neon38Bitmap == null) neon38Bitmap = android.graphics.BitmapFactory.decodeResource(
-                    getResources(), com.samsung.colorstatusbar.R.drawable.battery_38_neon);
+                    getResources(), R.drawable.battery_38_neon);
                 if (neon38Bitmap != null) {
                     paint.setShader(null); paint.setStyle(Paint.Style.FILL);
                     paint.setAlpha(255);paint.setColor(Color.WHITE);
