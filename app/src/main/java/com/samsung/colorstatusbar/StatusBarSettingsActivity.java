@@ -98,11 +98,14 @@ public class StatusBarSettingsActivity extends Activity {
         title.setPadding(dp(8), dp(8), dp(8), dp(16));
         content.addView(title);
         GridLayout grid = new GridLayout(this);
-        grid.setColumnCount(3);
-        // TEST22: respect the available outer-screen width; never force a 98dp minimum.
+        // TEST23: two spacious columns on the cover screen, three on the unfolded screen.
+        // Use physical width in dp, not a hardcoded minimum that pushes tiles offscreen.
         int screenWidth = getResources().getDisplayMetrics().widthPixels;
-        int usableWidth = Math.max(dp(180), screenWidth - dp(24) - dp(16));
-        int cellWidth = (usableWidth - dp(12)) / 3;
+        int columns = screenWidth / getResources().getDisplayMetrics().density >= 600 ? 3 : 2;
+        grid.setColumnCount(columns);
+        int dialogWidth = Math.min(screenWidth - dp(24), dp(900));
+        int usableWidth = dialogWidth - dp(24); // content padding, 12dp on each side
+        int cellWidth = (usableWidth - columns * dp(4)) / columns;
         for (int i = 0; i < styles.length; i++) {
             final int index = i;
             LinearLayout tile = new LinearLayout(this);
@@ -117,12 +120,12 @@ public class StatusBarSettingsActivity extends Activity {
             preview.setColor(0xFF4FE9FF);
             preview.setNumberColor(Color.WHITE);
             preview.setFillColor(0xFF4FE9FF);
-            preview.setFontSp(13);
+            preview.setFontSp(26); // TEST23: readable percentage after preview scaling
             // Draw each real BatteryIcon in a fixed virtual canvas, then scale the
             // entire result (including its percentage) to fit its own grid cell.
             View fittedPreview = new View(this) {
                 final int virtualWidth = dp(200);
-                final int virtualHeight = dp(76);
+                final int virtualHeight = dp(100);
                 @Override protected void onDraw(Canvas canvas) {
                     super.onDraw(canvas);
                     int availableW = getWidth();
@@ -143,17 +146,17 @@ public class StatusBarSettingsActivity extends Activity {
                     canvas.restoreToCount(saved);
                 }
             };
-            tile.addView(fittedPreview, new LinearLayout.LayoutParams(-1, dp(62)));
+            tile.addView(fittedPreview, new LinearLayout.LayoutParams(-1, dp(96)));
             TextView label = new TextView(this);
             label.setText(styles[i]);
             label.setTextColor(Color.WHITE);
-            label.setTextSize(10);
+            label.setTextSize(12);
             label.setGravity(Gravity.CENTER);
             label.setMaxLines(2);
             tile.addView(label, new LinearLayout.LayoutParams(-1, dp(42)));
             GridLayout.LayoutParams params = new GridLayout.LayoutParams();
             params.width = cellWidth;
-            params.height = dp(122);
+            params.height = dp(158);
             params.setMargins(dp(2), dp(2), dp(2), dp(2));
             grid.addView(tile, params);
             tile.setOnClickListener(v -> {
@@ -173,7 +176,7 @@ public class StatusBarSettingsActivity extends Activity {
         if (window != null) window.setLayout(-1, -2);
         dialog.show();
         window = dialog.getWindow();
-        if (window != null) window.setLayout(-1, -1);
+        if (window != null) window.setLayout(Math.min(getResources().getDisplayMetrics().widthPixels - dp(24), dp(900)), -1);
     }
 
     @Override public void onCreate(Bundle savedInstanceState) {
@@ -233,7 +236,7 @@ public class StatusBarSettingsActivity extends Activity {
         addCheckBox("show_nfc", "顯示 NFC（預設隱藏 N）", false);
         addCheckBox("show_vpn", "顯示 VPN", true);
         addCheckBox("show_dnd", "顯示勿擾模式", true);
-        heading("V4.31 TEST22｜3Minit 風格電池圖庫", 18);
+        heading("V4.31 TEST23｜3Minit 風格電池圖庫", 18);
         note("18、19 號已依參考圖片改為直立金屬電池的向量繪製版；非照片原圖。充電時有動態效果。");
         final String[] batteryStyles = {
             "01 極光波浪", "02 V4.30 原版電池", "03 RGB 五色", "04 數字電量光環",
