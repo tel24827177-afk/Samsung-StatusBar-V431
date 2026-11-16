@@ -92,7 +92,7 @@ public class StatusBarSettingsActivity extends Activity {
         content.setPadding(dp(12), dp(12), dp(12), dp(12));
         content.setBackgroundColor(0xFF20242B);
         TextView title = new TextView(this);
-        title.setText("3Minit 風格電池圖庫｜20 款（實際繪製）");
+        title.setText("3Minit 風格電池圖庫｜40 款（實際繪製）");
         title.setTextColor(Color.WHITE);
         title.setTextSize(20);
         title.setPadding(dp(8), dp(8), dp(8), dp(16));
@@ -242,18 +242,23 @@ public class StatusBarSettingsActivity extends Activity {
         addCheckBox("show_nfc", "顯示 NFC（預設隱藏 N）", false);
         addCheckBox("show_vpn", "顯示 VPN", true);
         addCheckBox("show_dnd", "顯示勿擾模式", true);
-        heading("V4.31 TEST24｜3Minit 風格電池圖庫", 18);
+        heading("V4.31 TEST25｜3Minit 風格電池圖庫", 18);
         note("18、19 號已依參考圖片改為直立金屬電池的向量繪製版；非照片原圖。充電時有動態效果。");
         final String[] batteryStyles = {
             "01 極光波浪", "02 V4.30 原版電池", "03 RGB 五色", "04 數字電量光環",
             "05 金色立體", "06 透明低電量", "07 藍色閃電", "08 藍色電漿閃電",
             "09 七彩透明圓柱", "10 藍色機械能量", "11 經典綠色玻璃", "12 藍色漸層金屬",
             "13 鈦銀藍光圓柱", "14 七彩氣泡液態", "15 紫藍霓虹透明", "16 藍色氣泡科技",
-            "17 RGB 七彩霓虹雙環", "18 透明金屬三色能量圓柱", "19 金屬四色電量圓柱", "20 銀黑金屬綠光數位 100%"
+            "17 RGB 七彩霓虹雙環", "18 透明金屬三色能量圓柱", "19 金屬四色電量圓柱", "20 銀黑金屬綠光數位 100%",
+            "21 經典藍光斷環", "22 精密機械刻度環", "23 金屬閃電圓環", "24 藍色玻璃氣泡",
+            "25 Android 機器人", "26 藍光分段電池", "27 蜂巢科技電池", "28 心電波能量",
+            "29 藍光水波電池", "30 綠光閃電電池", "31 RGB 彩虹光環", "32 七彩精密刻度",
+            "33 藍色閃電環", "34 紫光閃電金屬", "35 紫色水波能量", "36 水晶透明能量",
+            "37 綠光分段科技", "38 七彩分段金屬", "39 紅黑碳纖電池", "40 粉紫貓耳電池"
         };
         final Button galleryButton = new Button(this);
         galleryButton.setAllCaps(false);
-        galleryButton.setText("開啟電池圖庫｜目前：" + batteryStyles[Math.max(0, Math.min(19, settings.getInt("battery_style", 0)))]);
+        galleryButton.setText("開啟電池圖庫｜目前：" + batteryStyles[Math.max(0, Math.min(39, settings.getInt("battery_style", 0)))]);
         galleryButton.setOnClickListener(v -> showBatteryGallery(batteryStyles, galleryButton));
         root.addView(galleryButton);
         note("點選圖庫內的縮圖即可套用。縮圖直接使用狀態列的同一套電池繪製程式，固定預覽 80% 電量；實際電量與個人顏色設定仍以狀態列為準。未加入 3Minit 原始素材。");

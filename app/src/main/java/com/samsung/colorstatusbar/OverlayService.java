@@ -169,7 +169,7 @@ public class OverlayService extends AccessibilityService {
             return;
         }
         if ("battery_style".equals(key) && batteryIcon != null) {
-            batteryIcon.setStyle(opt("battery_style", 0, 0, 19));
+            batteryIcon.setStyle(opt("battery_style", 0, 0, 39));
             scheduleRebuild(); // Refresh spacing when switching portrait/landscape.
             return;
         }
@@ -308,7 +308,7 @@ public class OverlayService extends AccessibilityService {
 
         batteryIcon = new BatteryIcon(this);
         batteryIcon.setFontSp(opt("battery_text_size", 18, 7, 22));
-        batteryIcon.setStyle(opt("battery_style", 0, 0, 19));
+        batteryIcon.setStyle(opt("battery_style", 0, 0, 39));
         // Use physical display width in dp to separate cover and unfolded layouts.
         // A fold/unfold geometry change already triggers a rebuild of this overlay.
         int screenWidthDp = Math.round(getScreenSize()[0] / getResources().getDisplayMetrics().density);
@@ -316,12 +316,12 @@ public class OverlayService extends AccessibilityService {
         int width = opt("battery_size_" + screenKey, 40, 28, 90);
         int batteryHeight = opt("battery_height_" + screenKey, Math.max(19, width / 2), 16, 60);
         // TEST18: style 17 is a circular ring; avoid reserving a wide, empty battery slot.
-        int selectedBatteryStyle = opt("battery_style", 0, 0, 19);
-        int displayedBatteryWidth = selectedBatteryStyle == 16
+        int selectedBatteryStyle = opt("battery_style", 0, 0, 39);
+        int displayedBatteryWidth = (selectedBatteryStyle == 16 || selectedBatteryStyle == 20 || selectedBatteryStyle == 21 || selectedBatteryStyle == 22 || selectedBatteryStyle == 23 || selectedBatteryStyle == 30 || selectedBatteryStyle == 31 || selectedBatteryStyle == 32)
             ? Math.min(width, batteryHeight + 6) : width;
         LinearLayout.LayoutParams batteryLp = new LinearLayout.LayoutParams(dp(displayedBatteryWidth), dp(batteryHeight));
         // TEST15: upright styles sit directly next to the 4G/5G label.
-        batteryLp.leftMargin = dp(selectedBatteryStyle == 16 ? 2
+        batteryLp.leftMargin = dp((selectedBatteryStyle == 16 || selectedBatteryStyle == 20 || selectedBatteryStyle == 21 || selectedBatteryStyle == 22 || selectedBatteryStyle == 23 || selectedBatteryStyle == 30 || selectedBatteryStyle == 31 || selectedBatteryStyle == 32) ? 2
             : (isUprightBatteryStyle(selectedBatteryStyle) ? 0 : opt("battery_spacing", 10, 0, 30)));
         batteryLp.leftMargin = Math.max(0, batteryLp.leftMargin + dp(opt("battery_x_" + screenKey, 100, 0, 200) - 100));
         indicators.addView(batteryIcon, batteryLp);
@@ -839,7 +839,7 @@ public class OverlayService extends AccessibilityService {
         }
         private void drawStyledBattery(Canvas canvas,float w,float h) {
             canvas.save();
-            if (style == 16) {
+            if (style == 16 || style == 20 || style == 21 || style == 22 || style == 23 || style == 30 || style == 31 || style == 32) {
                 // TEST18: preserve a true circle regardless of battery width/height.
                 float scale = Math.min(w / 100f, h / 100f);
                 canvas.translate(w / 2f, h / 2f);
@@ -963,6 +963,100 @@ public class OverlayService extends AccessibilityService {
                     shape(c,88,5,112,13,3,0xFFD7E0E3);
                     gradient(c,69,79,131,89,5,0xFF59616A,0xFFEDF4F7,0xFF606A73);
                     break;
+
+                // TEST25: original vector interpretations of classic 3Minit-era styles.
+                // 21-40 (zero-based 20-39). No copyrighted icon files are embedded.
+                case 20: case 21: case 22: case 30: case 31: case 32: {
+                    int segments = style == 21 ? 12 : style == 31 ? 16 : 8;
+                    float radius = style == 22 ? 38f : 36f;
+                    ring(c,100,50,43,3,0xFF8BB7D4);
+                    for (int i=0;i<segments;i++) {
+                        float start=-90f+i*360f/segments;
+                        float hue=(style==30||style==31)?(i*360f/segments):style==32?195f:205f;
+                        int col=Color.HSVToColor(new float[]{hue,.78f,1f});
+                        paint.setShader(null);
+                        paint.setColor(i < Math.ceil(pct*segments)?col:0xFF293648);
+                        paint.setStyle(Paint.Style.STROKE);
+                        paint.setStrokeWidth(style==31?7f:10f);
+                        c.drawArc(100-radius,50-radius,100+radius,50+radius,start,360f/segments-5f,false,paint);
+                    }
+                    paint.setStyle(Paint.Style.FILL);
+                    if(style==22||style==32)bolt(c,100,28,22,0xFFFFFFFF);
+                    break;
+                }
+                case 23: { // 24: blue glass bubble
+                    gradient(c,59,7,141,93,40,0xFF03152B,0xFF0378C9,0xFF75F3FF);
+                    ring(c,100,50,42,3,0xFFB9F6FF);
+                    for(int i=0;i<9;i++)ring(c,72+(i*17)%55,22+(i*23)%56,3+i%4,1,0x99FFFFFF);
+                    break;
+                }
+                case 24: { // 25: Android robot
+                    paint.setShader(null);paint.setColor(0xFF90F22A);paint.setStyle(Paint.Style.FILL);
+                    c.drawArc(65,4,135,62,180,180,false,paint);
+                    shape(c,65,35,135,76,7,0xFF90F22A);
+                    shape(c,49,39,61,74,6,0xFF90F22A);shape(c,139,39,151,74,6,0xFF90F22A);
+                    shape(c,77,74,88,93,4,0xFF90F22A);shape(c,112,74,123,93,4,0xFF90F22A);
+                    ring(c,84,28,2,2,Color.WHITE);ring(c,116,28,2,2,Color.WHITE);
+                    break;
+                }
+                case 25: case 26: case 27: case 28: case 29:
+                case 33: case 34: case 35: case 36: case 37: case 38: case 39: {
+                    int primary=0xFF17D7FF, secondary=0xFF11549A;
+                    if(style==29||style==36){primary=0xFF82F63B;secondary=0xFF176B39;}
+                    if(style==33||style==34){primary=0xFFBC5DFF;secondary=0xFF2639B5;}
+                    if(style==35){primary=0xFF74E7FF;secondary=0xFF793BFF;}
+                    if(style==38){primary=0xFFEA4646;secondary=0xFF35343C;}
+                    if(style==39){primary=0xFFFF8BDD;secondary=0xFF6E2CCF;}
+                    gradient(c,12,18,181,82,16,0xFF43566D,0xFFDAF7FF,0xFF354559);
+                    gradient(c,20,24,173,76,11,0xFF0B1831,secondary,0xFF0B1527);
+                    c.save();c.clipRect(22,26,22+148*pct,74);
+                    if(style==37){
+                        for(int i=0;i<7;i++)shape(c,22+i*22,26,45+i*22,74,2,
+                            Color.HSVToColor(new float[]{i*50f,.9f,1f}));
+                    } else gradient(c,22,26,170,74,9,primary,secondary,primary);
+                    c.restore();
+                    shape(c,183,40,193,60,4,primary);
+                    if(style==25||style==36){
+                        for(int i=0;i<7;i++)shape(c,28+i*20,30,30+i*20,70,1,0x88FFFFFF);
+                    }
+                    if(style==26){
+                        for(int i=0;i<12;i++)ring(c,35+(i%6)*25,37+(i/6)*26,7,1,0x6689F9FF);
+                    }
+                    if(style==27){
+                        Path ecg=new Path();ecg.moveTo(27,52);ecg.lineTo(65,52);
+                        ecg.lineTo(76,30);ecg.lineTo(91,70);ecg.lineTo(104,43);
+                        ecg.lineTo(116,52);ecg.lineTo(165,52);
+                        paint.setShader(null);paint.setColor(Color.WHITE);paint.setStrokeWidth(3);
+                        paint.setStyle(Paint.Style.STROKE);c.drawPath(ecg,paint);
+                        paint.setStyle(Paint.Style.FILL);
+                    }
+                    if(style==28||style==34){
+                        Path wave2=new Path();wave2.moveTo(23,54);wave2.cubicTo(62,18,103,82,172,45);
+                        paint.setShader(null);paint.setStyle(Paint.Style.STROKE);
+                        paint.setStrokeWidth(4);paint.setColor(0xBFFFFFFF);
+                        c.drawPath(wave2,paint);paint.setStyle(Paint.Style.FILL);
+                    }
+                    if(style==29||style==33)bolt(c,124,30,34,0xFFFFFFA0);
+                    if(style==35){
+                        Path facet=new Path();facet.moveTo(20,25);facet.lineTo(56,12);
+                        facet.lineTo(141,12);facet.lineTo(180,42);facet.lineTo(154,80);
+                        paint.setShader(null);paint.setColor(0x77FFFFFF);
+                        paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(2);
+                        c.drawPath(facet,paint);paint.setStyle(Paint.Style.FILL);
+                    }
+                    if(style==38)for(int i=0;i<18;i++){
+                        paint.setShader(null);paint.setColor(0x448A99A7);paint.setStrokeWidth(1);
+                        c.drawLine(20+i*9,25,45+i*9,76,paint);
+                    }
+                    if(style==39){
+                        Path ears=new Path();ears.moveTo(55,22);ears.lineTo(62,3);ears.lineTo(82,19);
+                        ears.moveTo(120,19);ears.lineTo(139,3);ears.lineTo(147,22);
+                        paint.setShader(null);paint.setColor(0xFFFFB7EF);
+                        paint.setStrokeWidth(4);paint.setStyle(Paint.Style.STROKE);
+                        c.drawPath(ears,paint);paint.setStyle(Paint.Style.FILL);
+                    }
+                    break;
+                }
             }
             // TEST16: draw percentage in screen pixels after restoring the canvas.
             // This prevents horizontal and ring styles from shrinking the text
@@ -1017,8 +1111,8 @@ public class OverlayService extends AccessibilityService {
                 // TEST17: ring percentage stays centered; allow up to 90% of view width so the font slider remains effective.
                 // The ring has its percentage in the circular center.
                 // Other horizontal styles use the center of their main body.
-                textX = w * (style == 16 ? 0.50f : 0.525f);
-                maxTextWidth = Math.max(1f, w * (style == 16 ? 0.90f : 0.70f));
+                textX = w * ((style == 16 || style == 20 || style == 21 || style == 22 || style == 23 || style == 30 || style == 31 || style == 32) ? 0.50f : 0.525f);
+                maxTextWidth = Math.max(1f, w * ((style == 16 || style == 20 || style == 21 || style == 22 || style == 23 || style == 30 || style == 31 || style == 32) ? 0.90f : 0.70f));
             }
             float measured = paint.measureText(value);
             if (measured > maxTextWidth) {
@@ -1038,7 +1132,7 @@ public class OverlayService extends AccessibilityService {
             super.onDraw(canvas);
             float w = getWidth(), h = getHeight();
             if (w <= 0 || h <= 0) return;
-            if (style >= 0 && style <= 19 && style != 1) { drawStyledBattery(canvas, w, h); return; }
+            if (style >= 0 && style <= 39 && style != 1) { drawStyledBattery(canvas, w, h); return; }
             float x = w * 0.04f, y = h * 0.16f, right = w * 0.90f, bottom = h * 0.84f;
             float radius = Math.min(h * 0.22f, w * 0.09f);
             paint.setColor(color);
