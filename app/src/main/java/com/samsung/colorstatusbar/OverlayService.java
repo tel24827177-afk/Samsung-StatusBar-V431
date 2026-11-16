@@ -1071,11 +1071,16 @@ float pct=Math.max(0,Math.min(100,level))/100f;
             // TEST16: draw percentage in screen pixels after restoring the canvas.
             // This prevents horizontal and ring styles from shrinking the text
             // together with the normalized 200x100 battery artwork.
-            if (charging && style != 1 && style != 37) {
+            if (charging && style != 1) {
                 float phase = (System.currentTimeMillis() % 1050L) / 1050f;
                 paint.setShader(null); paint.setStyle(Paint.Style.STROKE);
                 paint.setStrokeCap(Paint.Cap.ROUND);
-                if (style == 16) {
+                if (style == 37) {
+    float x = 25f + phase * 145f;
+    paint.setStrokeWidth(8f);
+    paint.setColor(0xAAFFFFFF);
+    c.drawLine(x, 22f, x, 78f, paint);
+} elseif (style == 16) {
                     float start = -90f + phase * 360f;
                     paint.setColor(0xB000E8FF);paint.setStrokeWidth(12f);
                     c.drawArc(58,8,142,92,start,85f,false,paint);
@@ -1134,7 +1139,7 @@ float pct=Math.max(0,Math.min(100,level))/100f;
             paint.setShadowLayer(1f, 0, 1f, Color.BLACK);
             canvas.drawText(value, textX, baseline, paint);
             paint.clearShadowLayer();
-            if (charging && style != 1 && style != 37 && getVisibility() == View.VISIBLE) postInvalidateDelayed(60);
+            if (charging && style != 1 && getVisibility() == View.VISIBLE) postInvalidateDelayed(60);
         }
         private boolean followRainbow = false;
         void setFollowRainbow(boolean value) { if(followRainbow!=value){followRainbow=value;invalidate();} }
