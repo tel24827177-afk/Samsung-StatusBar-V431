@@ -99,6 +99,10 @@ public class StatusBarSettingsActivity extends Activity {
         content.addView(title);
         GridLayout grid = new GridLayout(this);
         grid.setColumnCount(3);
+        // TEST22: respect the available outer-screen width; never force a 98dp minimum.
+        int screenWidth = getResources().getDisplayMetrics().widthPixels;
+        int usableWidth = Math.max(dp(180), screenWidth - dp(24) - dp(16));
+        int cellWidth = (usableWidth - dp(12)) / 3;
         for (int i = 0; i < styles.length; i++) {
             final int index = i;
             LinearLayout tile = new LinearLayout(this);
@@ -114,7 +118,32 @@ public class StatusBarSettingsActivity extends Activity {
             preview.setNumberColor(Color.WHITE);
             preview.setFillColor(0xFF4FE9FF);
             preview.setFontSp(13);
-            tile.addView(preview, new LinearLayout.LayoutParams(-1, dp(62)));
+            // Draw each real BatteryIcon in a fixed virtual canvas, then scale the
+            // entire result (including its percentage) to fit its own grid cell.
+            View fittedPreview = new View(this) {
+                final int virtualWidth = dp(200);
+                final int virtualHeight = dp(76);
+                @Override protected void onDraw(Canvas canvas) {
+                    super.onDraw(canvas);
+                    int availableW = getWidth();
+                    int availableH = getHeight();
+                    if (availableW <= 0 || availableH <= 0) return;
+                    float scale = Math.min((float) availableW / virtualWidth,
+                                           (float) availableH / virtualHeight);
+                    int saved = canvas.save();
+                    canvas.clipRect(0, 0, availableW, availableH);
+                    canvas.translate((availableW - virtualWidth * scale) / 2f,
+                                     (availableH - virtualHeight * scale) / 2f);
+                    canvas.scale(scale, scale);
+                    preview.measure(
+                        View.MeasureSpec.makeMeasureSpec(virtualWidth, View.MeasureSpec.EXACTLY),
+                        View.MeasureSpec.makeMeasureSpec(virtualHeight, View.MeasureSpec.EXACTLY));
+                    preview.layout(0, 0, virtualWidth, virtualHeight);
+                    preview.draw(canvas);
+                    canvas.restoreToCount(saved);
+                }
+            };
+            tile.addView(fittedPreview, new LinearLayout.LayoutParams(-1, dp(62)));
             TextView label = new TextView(this);
             label.setText(styles[i]);
             label.setTextColor(Color.WHITE);
@@ -123,7 +152,7 @@ public class StatusBarSettingsActivity extends Activity {
             label.setMaxLines(2);
             tile.addView(label, new LinearLayout.LayoutParams(-1, dp(42)));
             GridLayout.LayoutParams params = new GridLayout.LayoutParams();
-            params.width = Math.max(dp(98), (getResources().getDisplayMetrics().widthPixels - dp(40)) / 3);
+            params.width = cellWidth;
             params.height = dp(122);
             params.setMargins(dp(2), dp(2), dp(2), dp(2));
             grid.addView(tile, params);
@@ -204,7 +233,7 @@ public class StatusBarSettingsActivity extends Activity {
         addCheckBox("show_nfc", "顯示 NFC（預設隱藏 N）", false);
         addCheckBox("show_vpn", "顯示 VPN", true);
         addCheckBox("show_dnd", "顯示勿擾模式", true);
-        heading("V4.31 TEST21｜3Minit 風格電池圖庫", 18);
+        heading("V4.31 TEST22｜3Minit 風格電池圖庫", 18);
         note("18、19 號已依參考圖片改為直立金屬電池的向量繪製版；非照片原圖。充電時有動態效果。");
         final String[] batteryStyles = {
             "01 極光波浪", "02 V4.30 原版電池", "03 RGB 五色", "04 數字電量光環",
