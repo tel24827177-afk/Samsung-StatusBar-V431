@@ -852,7 +852,7 @@ public class OverlayService extends AccessibilityService {
             // TEST15: move upright artwork toward the 4G label; the original
             // artwork was centered in a wide 200-unit drawing area.
             if (isUprightBatteryStyle(style)) canvas.translate(-36f, 0f);
-if (style == 37) canvas.translate(-20f, 0f);
+if (style == 37) canvas.translate(-15f, 0f);
 Canvas c=canvas;
 float pct=Math.max(0,Math.min(100,level))/100f;
             int cyan=0xFF4FE9FF,blue=0xFF168EFF, silver=0xFFDDEBF5;
@@ -1075,11 +1075,46 @@ float pct=Math.max(0,Math.min(100,level))/100f;
                 float phase = (System.currentTimeMillis() % 1050L) / 1050f;
                 paint.setShader(null); paint.setStyle(Paint.Style.STROKE);
                 paint.setStrokeCap(Paint.Cap.ROUND);
-                if (style == 37) {
-    float x = 25f + phase * 145f;
-    paint.setStrokeWidth(8f);
-    paint.setColor(0xAAFFFFFF);
-    c.drawLine(x, 22f, x, 78f, paint);
+                
+if (style == 37) {
+    float perimeter = 2f * (170f + 56f);
+    float head = phase * perimeter;
+    float segment = 52f;
+
+    paint.setShader(null);
+    paint.setStyle(Paint.Style.STROKE);
+    paint.setStrokeWidth(5f);
+    paint.setStrokeCap(Paint.Cap.ROUND);
+
+    android.graphics.Path frame = new android.graphics.Path();
+    frame.addRoundRect(15f, 19f, 185f, 81f,
+            10f, 10f, android.graphics.Path.Direction.CW);
+
+    android.graphics.PathMeasure measure =
+            new android.graphics.PathMeasure(frame, false);
+    float length = measure.getLength();
+
+    int[] rainbow = {
+            0xFFFF3333, 0xFFFFCC00, 0xFF33FF66,
+            0xFF00DDFF, 0xFF4466FF, 0xFFFF44EE
+    };
+
+    for (int i = 0; i < 36; i++) {
+        float start = (head + i * segment / 36f) % length;
+        float end = start + segment / 36f;
+        android.graphics.Path part = new android.graphics.Path();
+
+        if (end <= length) {
+            measure.getSegment(start, end, part, true);
+        } else {
+            measure.getSegment(start, length, part, true);
+            measure.getSegment(0f, end - length, part, true);
+        }
+
+        paint.setColor(rainbow[i % rainbow.length]);
+        c.drawPath(part, paint);
+    }
+
 } else if (style == 16) {
                     float start = -90f + phase * 360f;
                     paint.setColor(0xB000E8FF);paint.setStrokeWidth(12f);
