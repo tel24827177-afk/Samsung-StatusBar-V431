@@ -92,7 +92,7 @@ public class StatusBarSettingsActivity extends Activity {
         content.setPadding(dp(12), dp(12), dp(12), dp(12));
         content.setBackgroundColor(0xFF20242B);
         TextView title = new TextView(this);
-        title.setText("3Minit 風格電池圖庫｜20 款");
+        title.setText("3Minit 風格電池圖庫｜20 款（實際繪製）");
         title.setTextColor(Color.WHITE);
         title.setTextSize(20);
         title.setPadding(dp(8), dp(8), dp(8), dp(16));
@@ -107,18 +107,24 @@ public class StatusBarSettingsActivity extends Activity {
             tile.setPadding(dp(4), dp(8), dp(4), dp(8));
             int selected = settings.getInt("battery_style", 0);
             tile.setBackgroundColor(i == selected ? 0xFF285A70 : 0xFF303640);
-            BatteryGalleryPreview preview = new BatteryGalleryPreview(i);
-            tile.addView(preview, new LinearLayout.LayoutParams(dp(90), dp(60)));
+            OverlayService.BatteryIcon preview = new OverlayService.BatteryIcon(this);
+            preview.setStyle(i);
+            preview.setBattery(80, false);
+            preview.setColor(0xFF4FE9FF);
+            preview.setNumberColor(Color.WHITE);
+            preview.setFillColor(0xFF4FE9FF);
+            preview.setFontSp(13);
+            tile.addView(preview, new LinearLayout.LayoutParams(-1, dp(62)));
             TextView label = new TextView(this);
             label.setText(styles[i]);
             label.setTextColor(Color.WHITE);
-            label.setTextSize(11);
+            label.setTextSize(10);
             label.setGravity(Gravity.CENTER);
             label.setMaxLines(2);
-            tile.addView(label, new LinearLayout.LayoutParams(dp(94), dp(42)));
+            tile.addView(label, new LinearLayout.LayoutParams(-1, dp(42)));
             GridLayout.LayoutParams params = new GridLayout.LayoutParams();
-            params.width = dp(102);
-            params.height = dp(114);
+            params.width = Math.max(dp(98), (getResources().getDisplayMetrics().widthPixels - dp(40)) / 3);
+            params.height = dp(122);
             params.setMargins(dp(2), dp(2), dp(2), dp(2));
             grid.addView(tile, params);
             tile.setOnClickListener(v -> {
@@ -139,49 +145,6 @@ public class StatusBarSettingsActivity extends Activity {
         dialog.show();
         window = dialog.getWindow();
         if (window != null) window.setLayout(-1, -1);
-    }
-
-    private class BatteryGalleryPreview extends View {
-        private final int style;
-        private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        BatteryGalleryPreview(int style) { super(StatusBarSettingsActivity.this); this.style = style; }
-        @Override protected void onDraw(Canvas canvas) {
-            super.onDraw(canvas);
-            float cx = getWidth()/2f, cy = getHeight()/2f;
-            float r = dp(20);
-            int[] colors = {0xFF00E5FF,0xFFB0BEC5,0xFFEC407A,0xFF4FC3F7,0xFFFFD54F,
-                0xFFB0BEC5,0xFF29B6F6,0xFF536DFE,0xFFE040FB,0xFF29B6F6,
-                0xFF66BB6A,0xFF42A5F5,0xFF90CAF9,0xFFAB47BC,0xFF7C4DFF,
-                0xFF29B6F6,0xFF00E5FF,0xFF80DEEA,0xFFFFB74D,0xFF66BB6A};
-            int color = colors[style];
-            boolean circle = style == 3 || style == 13 || style == 16 || style == 14;
-            paint.setStyle(Paint.Style.STROKE);
-            paint.setStrokeWidth(dp(5));
-            paint.setColor(0xFF8C9BA7);
-            if (circle) {
-                canvas.drawCircle(cx, cy, r, paint);
-                paint.setColor(color);
-                canvas.drawArc(new RectF(cx-r,cy-r,cx+r,cy+r),-90,255,false,paint);
-                if (style == 16) {
-                    paint.setColor(0xFFE040FB);
-                    canvas.drawArc(new RectF(cx-r+dp(6),cy-r+dp(6),cx+r-dp(6),cy+r-dp(6)),90,175,false,paint);
-                }
-            } else {
-                RectF rect = new RectF(cx-dp(30),cy-dp(15),cx+dp(27),cy+dp(15));
-                canvas.drawRoundRect(rect,dp(5),dp(5),paint);
-                paint.setStyle(Paint.Style.FILL);
-                paint.setColor(0xFFB0BEC5);
-                canvas.drawRoundRect(new RectF(cx+dp(28),cy-dp(6),cx+dp(32),cy+dp(6)),dp(2),dp(2),paint);
-                paint.setColor(color);
-                canvas.drawRoundRect(new RectF(cx-dp(26),cy-dp(11),cx+dp(8),cy+dp(11)),dp(3),dp(3),paint);
-            }
-            paint.setStyle(Paint.Style.FILL);
-            paint.setColor(Color.WHITE);
-            paint.setTextAlign(Paint.Align.CENTER);
-            paint.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
-            paint.setTextSize(dp(13));
-            canvas.drawText("80",cx,cy+dp(5),paint);
-        }
     }
 
     @Override public void onCreate(Bundle savedInstanceState) {
@@ -241,7 +204,7 @@ public class StatusBarSettingsActivity extends Activity {
         addCheckBox("show_nfc", "顯示 NFC（預設隱藏 N）", false);
         addCheckBox("show_vpn", "顯示 VPN", true);
         addCheckBox("show_dnd", "顯示勿擾模式", true);
-        heading("V4.31 TEST20｜3Minit 風格電池圖庫", 18);
+        heading("V4.31 TEST21｜3Minit 風格電池圖庫", 18);
         note("18、19 號已依參考圖片改為直立金屬電池的向量繪製版；非照片原圖。充電時有動態效果。");
         final String[] batteryStyles = {
             "01 極光波浪", "02 V4.30 原版電池", "03 RGB 五色", "04 數字電量光環",
@@ -255,7 +218,7 @@ public class StatusBarSettingsActivity extends Activity {
         galleryButton.setText("開啟電池圖庫｜目前：" + batteryStyles[Math.max(0, Math.min(19, settings.getInt("battery_style", 0)))]);
         galleryButton.setOnClickListener(v -> showBatteryGallery(batteryStyles, galleryButton));
         root.addView(galleryButton);
-        note("點選圖庫內的縮圖即可套用。縮圖是原創示意預覽；實際狀態列仍使用原有的 20 款電池繪製程式。未加入 3Minit 原始素材。");
+        note("點選圖庫內的縮圖即可套用。縮圖直接使用狀態列的同一套電池繪製程式，固定預覽 80% 電量；實際電量與個人顏色設定仍以狀態列為準。未加入 3Minit 原始素材。");
         heading("V4.31｜內外螢幕電池大小與位置", 18);
         addSlider("battery_size_outer", "外螢幕電池寬度（拉長／縮短）", 40, 28, 90, " dp");
         addSlider("battery_height_outer", "外螢幕電池高度（拉高／壓扁）", 20, 16, 60, " dp");

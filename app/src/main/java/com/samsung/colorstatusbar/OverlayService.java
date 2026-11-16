@@ -761,7 +761,7 @@ public class OverlayService extends AccessibilityService {
     }
 
     /** Filled Samsung-like pill, battery percentage rendered INSIDE the outline. */
-    private static final class BatteryIcon extends View {
+    static final class BatteryIcon extends View {
         private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
         private int level = -1;
         private int color = 0xFFFF8A80;
