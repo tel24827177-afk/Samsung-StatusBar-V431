@@ -763,6 +763,7 @@ public class OverlayService extends AccessibilityService {
     /** Filled Samsung-like pill, battery percentage rendered INSIDE the outline. */
     static final class BatteryIcon extends View {
         private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private android.graphics.Bitmap neon38Bitmap;
         private int level = -1;
         private int color = 0xFFFF8A80;
         private int numberColor = Color.WHITE;
@@ -856,8 +857,16 @@ public class OverlayService extends AccessibilityService {
             int cyan=0xFF4FE9FF,blue=0xFF168EFF, silver=0xFFDDEBF5;
             int green=0xFF80F645,pink=0xFFFF4BCF, gold=0xFFFFC954;
             int tint=followRainbow?color:cyan;
-            // Each branch has a different silhouette, layout, and material treatment.
-            switch(style) {
+            // TEST26: use the exact poster-derived 38 neon frame, with no baked-in percentage.
+            if (style == 37) {
+                if (neon38Bitmap == null) neon38Bitmap = android.graphics.BitmapFactory.decodeResource(
+                    getResources(), com.samsung.colorstatusbar.R.drawable.battery_38_neon);
+                if (neon38Bitmap != null) {
+                    paint.setShader(null); paint.setStyle(Paint.Style.FILL);
+                    paint.setAlpha(255);paint.setColor(Color.WHITE);
+                    c.drawBitmap(neon38Bitmap, null, new RectF(3, 0, 197, 100), paint);
+                }
+            } else switch(style) {
                 case 0: // aurora wave capsule
                     gradient(c,9,15,179,84,30,0xFF104777,0xFF522FDD,0xFF1FADFC);
                     gradient(c,15,20,15+158*pct,79,25,0xFF31CBFF,0xFF7162FF,0xFF5F25C7);
@@ -1061,7 +1070,7 @@ public class OverlayService extends AccessibilityService {
             // TEST16: draw percentage in screen pixels after restoring the canvas.
             // This prevents horizontal and ring styles from shrinking the text
             // together with the normalized 200x100 battery artwork.
-            if (charging && style != 1) {
+            if (charging && style != 1 && style != 37) {
                 float phase = (System.currentTimeMillis() % 1050L) / 1050f;
                 paint.setShader(null); paint.setStyle(Paint.Style.STROKE);
                 paint.setStrokeCap(Paint.Cap.ROUND);
@@ -1124,7 +1133,7 @@ public class OverlayService extends AccessibilityService {
             paint.setShadowLayer(1f, 0, 1f, Color.BLACK);
             canvas.drawText(value, textX, baseline, paint);
             paint.clearShadowLayer();
-            if (charging && style != 1 && getVisibility() == View.VISIBLE) postInvalidateDelayed(60);
+            if (charging && style != 1 && style != 37 && getVisibility() == View.VISIBLE) postInvalidateDelayed(60);
         }
         private boolean followRainbow = false;
         void setFollowRainbow(boolean value) { if(followRainbow!=value){followRainbow=value;invalidate();} }
