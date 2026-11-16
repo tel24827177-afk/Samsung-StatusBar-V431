@@ -852,7 +852,16 @@ public class OverlayService extends AccessibilityService {
             // TEST15: move upright artwork toward the 4G label; the original
             // artwork was centered in a wide 200-unit drawing area.
             if (isUprightBatteryStyle(style)) canvas.translate(-36f, 0f);
-if (style == 37) canvas.translate(-15f, 0f);
+
+if (style == 37) {
+    // TEST29: 第38款放大15%，向右移動6dp
+    float shiftPx = 6f * getResources().getDisplayMetrics().density;
+    float shiftUnits = shiftPx * 200f / Math.max(1f, w);
+
+    canvas.translate(-15f + shiftUnits, 0f);
+    canvas.scale(1.15f, 1.15f, 100f, 50f);
+}
+
 Canvas c=canvas;
 float pct=Math.max(0,Math.min(100,level))/100f;
             int cyan=0xFF4FE9FF,blue=0xFF168EFF, silver=0xFFDDEBF5;
