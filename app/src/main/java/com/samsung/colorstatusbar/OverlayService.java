@@ -1080,7 +1080,7 @@ float pct=Math.max(0,Math.min(100,level))/100f;
     paint.setStrokeWidth(8f);
     paint.setColor(0xAAFFFFFF);
     c.drawLine(x, 22f, x, 78f, paint);
-} elseif (style == 16) {
+} else if (style == 16) {
                     float start = -90f + phase * 360f;
                     paint.setColor(0xB000E8FF);paint.setStrokeWidth(12f);
                     c.drawArc(58,8,142,92,start,85f,false,paint);
