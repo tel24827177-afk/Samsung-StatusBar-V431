@@ -97,21 +97,27 @@ public class StatusBarSettingsActivity extends Activity {
         title.setTextSize(20);
         title.setPadding(dp(8), dp(8), dp(8), dp(16));
         content.addView(title);
-        GridLayout grid = new GridLayout(this);
-        // TEST23: two spacious columns on the cover screen, three on the unfolded screen.
-        // Use physical width in dp, not a hardcoded minimum that pushes tiles offscreen.
+        // TEST24: use weighted LinearLayout rows rather than GridLayout's
+        // intrinsic minimum column widths. Long labels and preview views must
+        // never force the right column outside the dialog on the cover screen.
         int screenWidth = getResources().getDisplayMetrics().widthPixels;
         int columns = screenWidth / getResources().getDisplayMetrics().density >= 600 ? 3 : 2;
-        grid.setColumnCount(columns);
-        int dialogWidth = Math.min(screenWidth - dp(24), dp(900));
-        int usableWidth = dialogWidth - dp(24); // content padding, 12dp on each side
-        int cellWidth = (usableWidth - columns * dp(4)) / columns;
+        LinearLayout galleryRows = new LinearLayout(this);
+        galleryRows.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout currentRow = null;
         for (int i = 0; i < styles.length; i++) {
             final int index = i;
+            if (i % columns == 0) {
+                currentRow = new LinearLayout(this);
+                currentRow.setOrientation(LinearLayout.HORIZONTAL);
+                galleryRows.addView(currentRow, new LinearLayout.LayoutParams(-1, dp(158)));
+            }
             LinearLayout tile = new LinearLayout(this);
             tile.setOrientation(LinearLayout.VERTICAL);
             tile.setGravity(Gravity.CENTER);
             tile.setPadding(dp(4), dp(8), dp(4), dp(8));
+            tile.setClipChildren(true);
+            tile.setClipToPadding(true);
             int selected = settings.getInt("battery_style", 0);
             tile.setBackgroundColor(i == selected ? 0xFF285A70 : 0xFF303640);
             OverlayService.BatteryIcon preview = new OverlayService.BatteryIcon(this);
@@ -153,19 +159,19 @@ public class StatusBarSettingsActivity extends Activity {
             label.setTextSize(12);
             label.setGravity(Gravity.CENTER);
             label.setMaxLines(2);
+            label.setBreakStrategy(android.text.Layout.BREAK_STRATEGY_SIMPLE);
+            label.setEllipsize(android.text.TextUtils.TruncateAt.END);
             tile.addView(label, new LinearLayout.LayoutParams(-1, dp(42)));
-            GridLayout.LayoutParams params = new GridLayout.LayoutParams();
-            params.width = cellWidth;
-            params.height = dp(158);
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, -1, 1f);
             params.setMargins(dp(2), dp(2), dp(2), dp(2));
-            grid.addView(tile, params);
+            currentRow.addView(tile, params);
             tile.setOnClickListener(v -> {
                 settings.edit().putInt("battery_style", index).apply();
                 button.setText("開啟電池圖庫｜目前：" + styles[index]);
                 dialog.dismiss();
             });
         }
-        content.addView(grid);
+        content.addView(galleryRows, new LinearLayout.LayoutParams(-1, -2));
         Button close = new Button(this);
         close.setText("關閉圖庫");
         close.setOnClickListener(v -> dialog.dismiss());
@@ -236,7 +242,7 @@ public class StatusBarSettingsActivity extends Activity {
         addCheckBox("show_nfc", "顯示 NFC（預設隱藏 N）", false);
         addCheckBox("show_vpn", "顯示 VPN", true);
         addCheckBox("show_dnd", "顯示勿擾模式", true);
-        heading("V4.31 TEST23｜3Minit 風格電池圖庫", 18);
+        heading("V4.31 TEST24｜3Minit 風格電池圖庫", 18);
         note("18、19 號已依參考圖片改為直立金屬電池的向量繪製版；非照片原圖。充電時有動態效果。");
         final String[] batteryStyles = {
             "01 極光波浪", "02 V4.30 原版電池", "03 RGB 五色", "04 數字電量光環",
