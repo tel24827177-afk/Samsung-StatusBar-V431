@@ -852,8 +852,9 @@ public class OverlayService extends AccessibilityService {
             // TEST15: move upright artwork toward the 4G label; the original
             // artwork was centered in a wide 200-unit drawing area.
             if (isUprightBatteryStyle(style)) canvas.translate(-36f, 0f);
-            Canvas c=canvas;
-            float pct=Math.max(0,Math.min(100,level))/100f;
+if (style == 37) canvas.translate(-20f, 0f);
+Canvas c=canvas;
+float pct=Math.max(0,Math.min(100,level))/100f;
             int cyan=0xFF4FE9FF,blue=0xFF168EFF, silver=0xFFDDEBF5;
             int green=0xFF80F645,pink=0xFFFF4BCF, gold=0xFFFFC954;
             int tint=followRainbow?color:cyan;
