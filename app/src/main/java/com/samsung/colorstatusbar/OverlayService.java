@@ -764,6 +764,7 @@ public class OverlayService extends AccessibilityService {
     static final class BatteryIcon extends View {
         private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final android.graphics.Bitmap[] test30Bitmaps = new android.graphics.Bitmap[20];
+        private final Rect[] test35OpaqueBounds = new Rect[20];
         private int level = -1;
         private int color = 0xFFFF8A80;
         private int numberColor = Color.WHITE;
@@ -890,6 +891,7 @@ float pct=Math.max(0,Math.min(100,level))/100f;
                     Rect src = null;
                     RectF bounds;
                     if (trueRoundBitmap) {
+                        if (test35OpaqueBounds[assetIndex] == null) {
                         int aw = artwork.getWidth(), ah = artwork.getHeight();
                         int[] pixels = new int[aw * ah];
                         artwork.getPixels(pixels, 0, aw, 0, 0, aw, ah);
@@ -904,9 +906,11 @@ float pct=Math.max(0,Math.min(100,level))/100f;
                                 }
                             }
                         }
-                        if (maxX >= minX && maxY >= minY) {
-                            src = new Rect(minX, minY, maxX + 1, maxY + 1);
+                        test35OpaqueBounds[assetIndex] = (maxX >= minX && maxY >= minY)
+                            ? new Rect(minX, minY, maxX + 1, maxY + 1)
+                            : new Rect(0, 0, aw, ah);
                         }
+                        src = test35OpaqueBounds[assetIndex];
                         // Drawing coordinates are 200x100; the circle is centered at 100,50.
                         // Preserve roundness even when the width and height sliders differ.
                         bounds = new RectF(50f, 0f, 150f, 100f);
