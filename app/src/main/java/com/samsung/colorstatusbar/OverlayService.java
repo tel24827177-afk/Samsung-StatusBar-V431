@@ -334,7 +334,8 @@ public class OverlayService extends AccessibilityService {
         // TEST15: upright styles sit directly next to the 4G/5G label.
         batteryLp.leftMargin = dp((selectedBatteryStyle == 16 || selectedBatteryStyle == 20 || selectedBatteryStyle == 21 || selectedBatteryStyle == 22 || selectedBatteryStyle == 23 || selectedBatteryStyle == 30 || selectedBatteryStyle == 31 || selectedBatteryStyle == 32) ? 2
             : (isUprightBatteryStyle(selectedBatteryStyle) ? 0 : opt("battery_spacing", 10, 0, 30)));
-        if (compactRound || selectedBatteryStyle == 39) batteryLp.leftMargin = dp(2);
+        // TEST42: icon 38 uses the same 2dp gap to 4G as style 17.
+        if (compactRound || selectedBatteryStyle == 39 || selectedBatteryStyle == 37) batteryLp.leftMargin = dp(2);
         batteryLp.leftMargin = Math.max(0, batteryLp.leftMargin + dp(opt("battery_x_" + screenKey, 100, 0, 200) - 100));
         indicators.addView(batteryIcon, batteryLp);
         batteryIcon.setAlpha(opt("battery_opacity", 100, 20, 100) / 100f);
@@ -867,8 +868,14 @@ public class OverlayService extends AccessibilityService {
                 canvas.translate(w / 2f, h / 2f);
                 canvas.scale(scale, scale);
                 canvas.translate(-100f, -50f);
+            } else if (style == 37) {
+                // TEST42: fill more of the 38th icon's horizontal slot.
+                // Adjust only the outer canvas mapping, so the existing PNG,
+                // percentage and charging perimeter still share one coordinate space.
+                canvas.translate(w * 0.01f, h * 0.04f);
+                canvas.scale(w * 0.98f / 200f, h * 0.92f / 100f);
             } else if (style >= 20 && style <= 39) {
-                // TEST32: all remaining PNGs retain their existing safe-area transform.
+                // TEST32: all other PNGs retain their existing safe-area transform.
                 canvas.translate(w * 0.04f, h * 0.04f);
                 canvas.scale(w * 0.92f / 200f, h * 0.92f / 100f);
             } else {
