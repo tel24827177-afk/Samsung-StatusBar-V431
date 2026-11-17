@@ -321,7 +321,7 @@ public class OverlayService extends AccessibilityService {
             ? Math.min(width, batteryHeight + 6) : width;
         LinearLayout.LayoutParams batteryLp = new LinearLayout.LayoutParams(dp(displayedBatteryWidth), dp(batteryHeight));
         // TEST15: upright styles sit directly next to the 4G/5G label.
-        batteryLp.leftMargin = dp((selectedBatteryStyle == 16 || selectedBatteryStyle == 20 || selectedBatteryStyle == 21 || selectedBatteryStyle == 22 || selectedBatteryStyle == 23 || selectedBatteryStyle == 30 || selectedBatteryStyle == 31 || selectedBatteryStyle == 32) ? 2
+        batteryLp.leftMargin = dp((selectedBatteryStyle == 16 || selectedBatteryStyle == 20 || selectedBatteryStyle == 21 || selectedBatteryStyle == 22 || selectedBatteryStyle == 23 || selectedBatteryStyle == 30 || selectedBatteryStyle == 31 || selectedBatteryStyle == 32 || selectedBatteryStyle == 39) ? 2
             : (isUprightBatteryStyle(selectedBatteryStyle) ? 0 : opt("battery_spacing", 10, 0, 30)));
         batteryLp.leftMargin = Math.max(0, batteryLp.leftMargin + dp(opt("battery_x_" + screenKey, 100, 0, 200) - 100));
         indicators.addView(batteryIcon, batteryLp);
@@ -884,13 +884,14 @@ float pct=Math.max(0,Math.min(100,level))/100f;
                     paint.setStyle(Paint.Style.FILL);
                     paint.setAlpha(255);
                     paint.setColor(Color.WHITE);
-                    // TEST35: round bitmap icons 24 and 33 must behave like vector ring 17.
-                    // Trim transparent PNG padding before mapping to the same 100x100 ring viewport.
+                    // TEST36: trim transparent padding from the cat-shaped style 40 as well as
+                    // TEST35's circular styles 24 and 33. Keep the cat's natural aspect ratio.
                     boolean trueRoundBitmap = style == 23 || style == 32;
+                    boolean cropPaddedBitmap = trueRoundBitmap || style == 39;
                     boolean roundAsset = style == 22 || style == 23 || style == 31 || style == 32;
                     Rect src = null;
                     RectF bounds;
-                    if (trueRoundBitmap) {
+                    if (cropPaddedBitmap) {
                         if (test35OpaqueBounds[assetIndex] == null) {
                         int aw = artwork.getWidth(), ah = artwork.getHeight();
                         int[] pixels = new int[aw * ah];
@@ -911,9 +912,20 @@ float pct=Math.max(0,Math.min(100,level))/100f;
                             : new Rect(0, 0, aw, ah);
                         }
                         src = test35OpaqueBounds[assetIndex];
-                        // Drawing coordinates are 200x100; the circle is centered at 100,50.
-                        // Preserve roundness even when the width and height sliders differ.
-                        bounds = new RectF(50f, 0f, 150f, 100f);
+                        if (trueRoundBitmap) {
+                            // Circular designs keep the exact same 100x100 viewport as style 17.
+                            bounds = new RectF(50f, 0f, 150f, 100f);
+                        } else {
+                            // Style 40 is a cat with ears and paws, not a circle.
+                            // Fit its trimmed visible image nearly edge-to-edge without
+                            // stretching its proportions or clipping the ears/outline.
+                            float ratio = src.width() / (float) Math.max(1, src.height());
+                            float widthUnits = Math.min(194f, 98f * ratio);
+                            float heightUnits = widthUnits / ratio;
+                            bounds = new RectF(100f - widthUnits / 2f,
+                                50f - heightUnits / 2f, 100f + widthUnits / 2f,
+                                50f + heightUnits / 2f);
+                        }
                     } else if (roundAsset) {
                         float ratio = artwork.getWidth() / (float) artwork.getHeight();
                         float widthUnits = Math.min(100f * ratio, 188f);
