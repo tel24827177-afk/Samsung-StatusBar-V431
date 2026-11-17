@@ -323,13 +323,18 @@ public class OverlayService extends AccessibilityService {
         // TEST34: use the requested width for bitmap circles 24/33.
         // TEST33 capped them at height+4dp, so increasing width had no effect.
         // Style 17 retains its established compact layout.
-        int displayedBatteryWidth = selectedBatteryStyle == 16
-            ? Math.min(width, batteryHeight + 4) : width;
+        // TEST39: 24,33 use the same compact slot as 17; cat 40 fits its own shape.
+        // All other icons and their original TEST34 sizes remain unchanged.
+        int displayedBatteryWidth = (selectedBatteryStyle == 16 || compactRound)
+            ? Math.min(width, batteryHeight + 4)
+            : (selectedBatteryStyle == 39
+                ? Math.min(width, Math.round(batteryHeight * 1.5f) + 4)
+                : width);
         LinearLayout.LayoutParams batteryLp = new LinearLayout.LayoutParams(dp(displayedBatteryWidth), dp(batteryHeight));
         // TEST15: upright styles sit directly next to the 4G/5G label.
         batteryLp.leftMargin = dp((selectedBatteryStyle == 16 || selectedBatteryStyle == 20 || selectedBatteryStyle == 21 || selectedBatteryStyle == 22 || selectedBatteryStyle == 23 || selectedBatteryStyle == 30 || selectedBatteryStyle == 31 || selectedBatteryStyle == 32) ? 2
             : (isUprightBatteryStyle(selectedBatteryStyle) ? 0 : opt("battery_spacing", 10, 0, 30)));
-        if (compactRound) batteryLp.leftMargin = dp(2);
+        if (compactRound || selectedBatteryStyle == 39) batteryLp.leftMargin = dp(2);
         batteryLp.leftMargin = Math.max(0, batteryLp.leftMargin + dp(opt("battery_x_" + screenKey, 100, 0, 200) - 100));
         indicators.addView(batteryIcon, batteryLp);
         batteryIcon.setAlpha(opt("battery_opacity", 100, 20, 100) / 100f);
@@ -771,6 +776,8 @@ public class OverlayService extends AccessibilityService {
     static final class BatteryIcon extends View {
         private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final android.graphics.Bitmap[] test30Bitmaps = new android.graphics.Bitmap[20];
+        // TEST39: only 24, 33 and 40 cache their transparent pixel bounds.
+        private final Rect[] test39VisibleBounds = new Rect[20];
         private int level = -1;
         private int color = 0xFFFF8A80;
         private int numberColor = Color.WHITE;
@@ -848,21 +855,19 @@ public class OverlayService extends AccessibilityService {
         private void drawStyledBattery(Canvas canvas,float w,float h) {
             canvas.save();
             if (style == 22) {
-                // TEST32: preserve TEST31's complete double-ring, but allow
-                // independent horizontal/vertical scaling inside safe margins.
+                // TEST32: keep 23's double-ring transform exactly unchanged.
                 canvas.translate(w * 0.04f, h * 0.06f);
                 canvas.scale(w * 0.92f / 200f, h * 0.88f / 100f);
-            } else if (style >= 20 && style <= 39) {
-                // TEST32 option B: independently scale width and height for
-                // all imported artwork; keep 4% padding to avoid edge clipping.
-                canvas.translate(w * 0.04f, h * 0.04f);
-                canvas.scale(w * 0.92f / 200f, h * 0.92f / 100f);
-            } else if (style == 16) {
-                // TEST18: preserve a true circle regardless of battery width/height.
+            } else if (style == 16 || style == 23 || style == 32) {
+                // TEST39: icon 24/33 share 17's uniform circle mapping.
                 float scale = Math.min(w / 100f, h / 100f);
                 canvas.translate(w / 2f, h / 2f);
                 canvas.scale(scale, scale);
                 canvas.translate(-100f, -50f);
+            } else if (style >= 20 && style <= 39) {
+                // TEST32: all remaining PNGs retain their existing safe-area transform.
+                canvas.translate(w * 0.04f, h * 0.04f);
+                canvas.scale(w * 0.92f / 200f, h * 0.92f / 100f);
             } else {
                 canvas.scale(w / 200f, h / 100f);
             }
@@ -902,10 +907,48 @@ float pct=Math.max(0,Math.min(100,level))/100f;
                     paint.setStyle(Paint.Style.FILL);
                     paint.setAlpha(255);
                     paint.setColor(Color.WHITE);
-                    // Circular/arched designs retain a square drawing box.
+                    // TEST39: apply transparent crop only to icons 24, 33 and 40.
                     boolean roundAsset = style == 22 || style == 23 || style == 31 || style == 32;
+                    boolean correctedIcon = style == 23 || style == 32 || style == 39;
+                    Rect src = null;
+                    if (correctedIcon) {
+                        if (test39VisibleBounds[assetIndex] == null) {
+                            int aw = artwork.getWidth(), ah = artwork.getHeight();
+                            int[] pixels = new int[aw * ah];
+                            artwork.getPixels(pixels, 0, aw, 0, 0, aw, ah);
+                            int minX = aw, minY = ah, maxX = -1, maxY = -1;
+                            for (int yy = 0; yy < ah; yy++) {
+                                for (int xx = 0; xx < aw; xx++) {
+                                    if ((pixels[yy * aw + xx] >>> 24) > 12) {
+                                        if (xx < minX) minX = xx;
+                                        if (xx > maxX) maxX = xx;
+                                        if (yy < minY) minY = yy;
+                                        if (yy > maxY) maxY = yy;
+                                    }
+                                }
+                            }
+                            test39VisibleBounds[assetIndex] = (maxX >= minX && maxY >= minY)
+                                ? new Rect(minX, minY, maxX + 1, maxY + 1)
+                                : new Rect(0, 0, aw, ah);
+                        }
+                        src = test39VisibleBounds[assetIndex];
+                    }
                     RectF bounds;
-                    if (roundAsset) {
+                    if (style == 23 || style == 32) {
+                        // 24 and 33: exact same 100x100 circle viewport as 17.
+                        bounds = new RectF(50f, 0f, 150f, 100f);
+                    } else if (style == 39) {
+                        // 40: keep ears, paws and original PNG aspect ratio.
+                        float ratio = src.width() / (float) Math.max(1, src.height());
+                        float availW = Math.max(1f, w * 0.92f);
+                        float availH = Math.max(1f, h * 0.92f);
+                        float actualW = Math.min(availW, availH * ratio);
+                        float actualH = actualW / ratio;
+                        float destW = 200f * actualW / availW;
+                        float destH = 100f * actualH / availH;
+                        bounds = new RectF(100f - destW / 2f, 50f - destH / 2f,
+                            100f + destW / 2f, 50f + destH / 2f);
+                    } else if (roundAsset) {
                         float ratio = artwork.getWidth() / (float) artwork.getHeight();
                         float widthUnits = Math.min(100f * ratio, 188f);
                         float heightUnits = widthUnits / ratio;
@@ -920,7 +963,7 @@ float pct=Math.max(0,Math.min(100,level))/100f;
                             50f - heightUnits / 2f, 100f + widthUnits / 2f,
                             50f + heightUnits / 2f);
                     }
-                    c.drawBitmap(artwork, null, bounds, paint);
+                    c.drawBitmap(artwork, src, bounds, paint);
                 } else if (style == 37) {
                     // TEST32: visible fallback when style 38 bitmap cannot load.
                     paint.setShader(null);
