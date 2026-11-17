@@ -317,12 +317,16 @@ public class OverlayService extends AccessibilityService {
         int batteryHeight = opt("battery_height_" + screenKey, Math.max(19, width / 2), 16, 60);
         // TEST18: style 17 is a circular ring; avoid reserving a wide, empty battery slot.
         int selectedBatteryStyle = opt("battery_style", 0, 0, 39);
-        int displayedBatteryWidth = (selectedBatteryStyle == 16)
-            ? Math.min(width, batteryHeight + 6) : width; // TEST32: honor width slider for styles 21–40
+        // TEST33: compact circular assets 24 and 33 to their actual diameter.
+        // Other styles keep TEST32's independent width/height sliders.
+        boolean compactRound = selectedBatteryStyle == 23 || selectedBatteryStyle == 32;
+        int displayedBatteryWidth = (selectedBatteryStyle == 16 || compactRound)
+            ? Math.min(width, batteryHeight + 4) : width;
         LinearLayout.LayoutParams batteryLp = new LinearLayout.LayoutParams(dp(displayedBatteryWidth), dp(batteryHeight));
         // TEST15: upright styles sit directly next to the 4G/5G label.
         batteryLp.leftMargin = dp((selectedBatteryStyle == 16 || selectedBatteryStyle == 20 || selectedBatteryStyle == 21 || selectedBatteryStyle == 22 || selectedBatteryStyle == 23 || selectedBatteryStyle == 30 || selectedBatteryStyle == 31 || selectedBatteryStyle == 32) ? 2
             : (isUprightBatteryStyle(selectedBatteryStyle) ? 0 : opt("battery_spacing", 10, 0, 30)));
+        if (compactRound) batteryLp.leftMargin = dp(2);
         batteryLp.leftMargin = Math.max(0, batteryLp.leftMargin + dp(opt("battery_x_" + screenKey, 100, 0, 200) - 100));
         indicators.addView(batteryIcon, batteryLp);
         batteryIcon.setAlpha(opt("battery_opacity", 100, 20, 100) / 100f);
@@ -1197,6 +1201,29 @@ if (style == 37) {
                 }
                 paint.setStrokeCap(Paint.Cap.BUTT);
                 paint.setStyle(Paint.Style.FILL);paint.setAlpha(255);
+            }
+            // TEST33: charging highlight for imported 21–40 artwork.
+            // Retain style 38's original rainbow perimeter animation unchanged.
+            if (charging && style >= 20 && style <= 39 && style != 37) {
+                float phase33 = (System.currentTimeMillis() % 1400L) / 1400f;
+                float pulse33 = 0.5f + 0.5f * (float)Math.sin(phase33 * Math.PI * 2.0);
+                boolean round33 = style == 22 || style == 23 || style == 31 || style == 32;
+                paint.setShader(null);
+                paint.setStyle(Paint.Style.STROKE);
+                paint.setStrokeCap(Paint.Cap.ROUND);
+                paint.setStrokeWidth(round33 ? 3.2f : 3.8f);
+                paint.setColor(Color.argb(90 + Math.round(145f * pulse33), 65, 235, 255));
+                if (round33) {
+                    float radius33 = 37f;
+                    c.drawArc(100f-radius33, 50f-radius33, 100f+radius33,
+                        50f+radius33, -90f + phase33 * 360f, 90f, false, paint);
+                } else {
+                    float sweep33 = 35f + phase33 * 115f;
+                    c.drawLine(sweep33, 18f, sweep33 + 20f, 18f, paint);
+                    c.drawLine(sweep33, 82f, sweep33 + 20f, 82f, paint);
+                }
+                paint.setStyle(Paint.Style.FILL);
+                paint.setAlpha(255);
             }
             paint.setShader(null);paint.setStyle(Paint.Style.FILL);canvas.restore();
             // TEST16: shared percentage rendering for all custom styles,
