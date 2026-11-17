@@ -763,7 +763,7 @@ public class OverlayService extends AccessibilityService {
     /** Filled Samsung-like pill, battery percentage rendered INSIDE the outline. */
     static final class BatteryIcon extends View {
         private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private android.graphics.Bitmap neon38Bitmap;
+        private final android.graphics.Bitmap[] test30Bitmaps = new android.graphics.Bitmap[20];
         private int level = -1;
         private int color = 0xFFFF8A80;
         private int numberColor = Color.WHITE;
@@ -867,14 +867,41 @@ float pct=Math.max(0,Math.min(100,level))/100f;
             int cyan=0xFF4FE9FF,blue=0xFF168EFF, silver=0xFFDDEBF5;
             int green=0xFF80F645,pink=0xFFFF4BCF, gold=0xFFFFC954;
             int tint=followRainbow?color:cyan;
-            // TEST26: use the exact poster-derived 38 neon frame, with no baked-in percentage.
-            if (style == 37) {
-                if (neon38Bitmap == null) neon38Bitmap = android.graphics.BitmapFactory.decodeResource(
-                    getResources(), com.samsung.colorstatusbar.preview.R.drawable.battery_38_neon);
-                if (neon38Bitmap != null) {
-                    paint.setShader(null); paint.setStyle(Paint.Style.FILL);
-                    paint.setAlpha(255);paint.setColor(Color.WHITE);
-                    c.drawBitmap(neon38Bitmap, null, new RectF(3, 0, 197, 100), paint);
+            // TEST30: use the approved V4 transparent PNGs for styles 21–40.
+            // Keep the original 1–20 vector drawing code unchanged.
+            if (style >= 20 && style <= 39) {
+                int assetIndex = style - 20;
+                if (test30Bitmaps[assetIndex] == null) {
+                    int drawableId = getResources().getIdentifier(
+                        "battery_" + (style + 1), "drawable", getContext().getPackageName());
+                    if (drawableId != 0) test30Bitmaps[assetIndex] =
+                        android.graphics.BitmapFactory.decodeResource(getResources(), drawableId);
+                }
+                android.graphics.Bitmap artwork = test30Bitmaps[assetIndex];
+                if (artwork != null) {
+                    paint.setShader(null);
+                    paint.setStyle(Paint.Style.FILL);
+                    paint.setAlpha(255);
+                    paint.setColor(Color.WHITE);
+                    // Circular/arched designs retain a square drawing box.
+                    boolean roundAsset = style == 22 || style == 23 || style == 31 || style == 32;
+                    RectF bounds;
+                    if (roundAsset) {
+                        float ratio = artwork.getWidth() / (float) artwork.getHeight();
+                        float widthUnits = Math.min(100f * ratio, 188f);
+                        float heightUnits = widthUnits / ratio;
+                        bounds = new RectF(100f - widthUnits / 2f,
+                            50f - heightUnits / 2f, 100f + widthUnits / 2f,
+                            50f + heightUnits / 2f);
+                    } else {
+                        float ratio = artwork.getWidth() / (float) artwork.getHeight();
+                        float widthUnits = Math.min(194f, 96f * ratio);
+                        float heightUnits = widthUnits / ratio;
+                        bounds = new RectF(100f - widthUnits / 2f,
+                            50f - heightUnits / 2f, 100f + widthUnits / 2f,
+                            50f + heightUnits / 2f);
+                    }
+                    c.drawBitmap(artwork, null, bounds, paint);
                 }
             } else switch(style) {
                 case 0: // aurora wave capsule
@@ -1080,7 +1107,7 @@ float pct=Math.max(0,Math.min(100,level))/100f;
             // TEST16: draw percentage in screen pixels after restoring the canvas.
             // This prevents horizontal and ring styles from shrinking the text
             // together with the normalized 200x100 battery artwork.
-            if (charging && style != 1) {
+            if (charging && (style < 20 || style == 37)) {
                 float phase = (System.currentTimeMillis() % 1050L) / 1050f;
                 paint.setShader(null); paint.setStyle(Paint.Style.STROKE);
                 paint.setStrokeCap(Paint.Cap.ROUND);
