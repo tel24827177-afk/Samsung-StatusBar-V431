@@ -320,7 +320,10 @@ public class OverlayService extends AccessibilityService {
         // TEST33: compact circular assets 24 and 33 to their actual diameter.
         // Other styles keep TEST32's independent width/height sliders.
         boolean compactRound = selectedBatteryStyle == 23 || selectedBatteryStyle == 32;
-        int displayedBatteryWidth = (selectedBatteryStyle == 16 || compactRound)
+        // TEST34: use the requested width for bitmap circles 24/33.
+        // TEST33 capped them at height+4dp, so increasing width had no effect.
+        // Style 17 retains its established compact layout.
+        int displayedBatteryWidth = selectedBatteryStyle == 16
             ? Math.min(width, batteryHeight + 4) : width;
         LinearLayout.LayoutParams batteryLp = new LinearLayout.LayoutParams(dp(displayedBatteryWidth), dp(batteryHeight));
         // TEST15: upright styles sit directly next to the 4G/5G label.
