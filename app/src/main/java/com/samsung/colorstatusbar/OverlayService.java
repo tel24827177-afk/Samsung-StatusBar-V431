@@ -334,8 +334,10 @@ public class OverlayService extends AccessibilityService {
         // TEST15: upright styles sit directly next to the 4G/5G label.
         batteryLp.leftMargin = dp((selectedBatteryStyle == 16 || selectedBatteryStyle == 20 || selectedBatteryStyle == 21 || selectedBatteryStyle == 22 || selectedBatteryStyle == 23 || selectedBatteryStyle == 30 || selectedBatteryStyle == 31 || selectedBatteryStyle == 32) ? 2
             : (isUprightBatteryStyle(selectedBatteryStyle) ? 0 : opt("battery_spacing", 10, 0, 30)));
-        // TEST42: icon 38 uses the same 2dp gap to 4G as style 17.
-        if (compactRound || selectedBatteryStyle == 39 || selectedBatteryStyle == 37) batteryLp.leftMargin = dp(2);
+        // TEST43: style 38 has much more internal transparent padding than
+        // other icons. Give only style 38 a zero-gap slot next to 4G;
+        // its cropped PNG retains a thin neon glow around the visible border.
+        if (compactRound || selectedBatteryStyle == 39 || selectedBatteryStyle == 37) batteryLp.leftMargin = dp(selectedBatteryStyle == 37 ? 0 : 2);
         batteryLp.leftMargin = Math.max(0, batteryLp.leftMargin + dp(opt("battery_x_" + screenKey, 100, 0, 200) - 100));
         indicators.addView(batteryIcon, batteryLp);
         batteryIcon.setAlpha(opt("battery_opacity", 100, 20, 100) / 100f);
@@ -919,7 +921,7 @@ float pct=Math.max(0,Math.min(100,level))/100f;
                     paint.setColor(Color.WHITE);
                     // TEST39: apply transparent crop only to icons 24, 33 and 40.
                     boolean roundAsset = style == 22 || style == 23 || style == 31 || style == 32;
-                    boolean correctedIcon = style == 23 || style == 32 || style == 39 || style == 31;
+                    boolean correctedIcon = style == 23 || style == 32 || style == 39 || style == 31 || style == 37;
                     Rect src = null;
                     if (correctedIcon) {
                         if (test39VisibleBounds[assetIndex] == null) {
@@ -936,6 +938,17 @@ float pct=Math.max(0,Math.min(100,level))/100f;
                                         if (yy > maxY) maxY = yy;
                                     }
                                 }
+                            }
+                            // TEST43: the original 38 PNG (1836 x 857) has
+                            // about 24% combined horizontal transparent margin.
+                            // Keep a 2.5% safety border around the visible glow.
+                            if (style == 37 && maxX >= minX && maxY >= minY) {
+                                int padX = Math.max(1, Math.round((maxX - minX + 1) * 0.025f));
+                                int padY = Math.max(1, Math.round((maxY - minY + 1) * 0.025f));
+                                minX = Math.max(0, minX - padX);
+                                maxX = Math.min(aw - 1, maxX + padX);
+                                minY = Math.max(0, minY - padY);
+                                maxY = Math.min(ah - 1, maxY + padY);
                             }
                             test39VisibleBounds[assetIndex] = (maxX >= minX && maxY >= minY)
                                 ? new Rect(minX, minY, maxX + 1, maxY + 1)
@@ -956,6 +969,22 @@ float pct=Math.max(0,Math.min(100,level))/100f;
                         float gaugeH = gaugeRatio >= 1f ? 100f / gaugeRatio : 100f;
                         bounds = new RectF(100f - gaugeW * 0.5f, 50f - gaugeH * 0.5f,
                             100f + gaugeW * 0.5f, 50f + gaugeH * 0.5f);
+                    } else if (style == 37) {
+                        // TEST43: fit 38's trimmed visible body into the
+                        // available width/height WITHOUT distorting its aspect
+                        // ratio. Charging perimeter continues using the
+                        // original unchanged drawing coordinates.
+                        float ratio38 = src.width() / (float) Math.max(1, src.height());
+                        float width38 = Math.max(1f, w * 0.98f);
+                        float height38 = Math.max(1f, h * 0.92f);
+                        float drawnWidth38 = Math.min(width38, height38 * ratio38);
+                        float drawnHeight38 = drawnWidth38 / ratio38;
+                        float unitsWidth38 = 200f * drawnWidth38 / width38;
+                        float unitsHeight38 = 100f * drawnHeight38 / height38;
+                        bounds = new RectF(100f - unitsWidth38 / 2f,
+                            50f - unitsHeight38 / 2f,
+                            100f + unitsWidth38 / 2f,
+                            50f + unitsHeight38 / 2f);
                     } else if (style == 39) {
                         // 40: keep ears, paws and original PNG aspect ratio.
                         float ratio = src.width() / (float) Math.max(1, src.height());
