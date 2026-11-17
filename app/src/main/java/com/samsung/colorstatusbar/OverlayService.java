@@ -842,7 +842,13 @@ public class OverlayService extends AccessibilityService {
             canvas.save();
             if (style == 16 || style == 20 || style == 21 || style == 22 || style == 23 || style == 30 || style == 31 || style == 32) {
                 // TEST18: preserve a true circle regardless of battery width/height.
-                float scale = Math.min(w / 100f, h / 100f);
+                // Battery 23 (zero-based style 22): its bitmap spans up to 188 design units
+                // horizontally. Fit the full 200x100 design canvas inside the view
+                // instead of fitting only a 100x100 square, which clipped both sides.
+                // Keep the original bitmap and all other battery styles unchanged.
+                float scale = style == 22
+                    ? Math.min(w / 200f, h / 100f)
+                    : Math.min(w / 100f, h / 100f);
                 canvas.translate(w / 2f, h / 2f);
                 canvas.scale(scale, scale);
                 canvas.translate(-100f, -50f);
