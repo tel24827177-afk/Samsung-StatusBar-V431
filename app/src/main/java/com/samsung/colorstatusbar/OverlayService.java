@@ -317,8 +317,8 @@ public class OverlayService extends AccessibilityService {
         int batteryHeight = opt("battery_height_" + screenKey, Math.max(19, width / 2), 16, 60);
         // TEST18: style 17 is a circular ring; avoid reserving a wide, empty battery slot.
         int selectedBatteryStyle = opt("battery_style", 0, 0, 39);
-        int displayedBatteryWidth = (selectedBatteryStyle == 16 || selectedBatteryStyle == 20 || selectedBatteryStyle == 21 || selectedBatteryStyle == 23 || selectedBatteryStyle == 30 || selectedBatteryStyle == 31 || selectedBatteryStyle == 32)
-            ? Math.min(width, batteryHeight + 6) : width;
+        int displayedBatteryWidth = (selectedBatteryStyle == 16)
+            ? Math.min(width, batteryHeight + 6) : width; // TEST32: honor width slider for styles 21–40
         LinearLayout.LayoutParams batteryLp = new LinearLayout.LayoutParams(dp(displayedBatteryWidth), dp(batteryHeight));
         // TEST15: upright styles sit directly next to the 4G/5G label.
         batteryLp.leftMargin = dp((selectedBatteryStyle == 16 || selectedBatteryStyle == 20 || selectedBatteryStyle == 21 || selectedBatteryStyle == 22 || selectedBatteryStyle == 23 || selectedBatteryStyle == 30 || selectedBatteryStyle == 31 || selectedBatteryStyle == 32) ? 2
@@ -841,13 +841,16 @@ public class OverlayService extends AccessibilityService {
         private void drawStyledBattery(Canvas canvas,float w,float h) {
             canvas.save();
             if (style == 22) {
-                // TEST31: style 23 is a wide double-ring artwork, not a square icon.
-                // Preserve its aspect ratio and leave breathing room for the glow.
-                float scale = Math.min(w * 0.92f / 200f, h * 0.88f / 100f);
-                canvas.translate(w / 2f, h / 2f);
-                canvas.scale(scale, scale);
-                canvas.translate(-100f, -50f);
-            } else if (style == 16 || style == 20 || style == 21 || style == 23 || style == 30 || style == 31 || style == 32) {
+                // TEST32: preserve TEST31's complete double-ring, but allow
+                // independent horizontal/vertical scaling inside safe margins.
+                canvas.translate(w * 0.04f, h * 0.06f);
+                canvas.scale(w * 0.92f / 200f, h * 0.88f / 100f);
+            } else if (style >= 20 && style <= 39) {
+                // TEST32 option B: independently scale width and height for
+                // all imported artwork; keep 4% padding to avoid edge clipping.
+                canvas.translate(w * 0.04f, h * 0.04f);
+                canvas.scale(w * 0.92f / 200f, h * 0.92f / 100f);
+            } else if (style == 16) {
                 // TEST18: preserve a true circle regardless of battery width/height.
                 float scale = Math.min(w / 100f, h / 100f);
                 canvas.translate(w / 2f, h / 2f);
@@ -861,12 +864,8 @@ public class OverlayService extends AccessibilityService {
             if (isUprightBatteryStyle(style)) canvas.translate(-36f, 0f);
 
 if (style == 37) {
-    // TEST29: 第38款放大15%，向右移動6dp
-    float shiftPx = 6f * getResources().getDisplayMetrics().density;
-    float shiftUnits = shiftPx * 200f / Math.max(1f, w);
-
-    canvas.translate(-15f + shiftUnits, 0f);
-    canvas.scale(1.15f, 1.15f, 100f, 50f);
+    // TEST32: remove the extra 115% zoom that clipped style 38.
+    // The regular safe-area transform above now controls its dimensions.
 }
 
 Canvas c=canvas;
@@ -881,8 +880,14 @@ float pct=Math.max(0,Math.min(100,level))/100f;
                 if (test30Bitmaps[assetIndex] == null) {
                     int drawableId = getResources().getIdentifier(
                         "battery_" + (style + 1), "drawable", getContext().getPackageName());
-                    if (drawableId != 0) test30Bitmaps[assetIndex] =
-                        android.graphics.BitmapFactory.decodeResource(getResources(), drawableId);
+                    if (drawableId != 0) {
+                        try {
+                            test30Bitmaps[assetIndex] =
+                                android.graphics.BitmapFactory.decodeResource(getResources(), drawableId);
+                        } catch (RuntimeException ignored) {
+                            // TEST32: keep drawing instead of losing the whole icon.
+                        }
+                    }
                 }
                 android.graphics.Bitmap artwork = test30Bitmaps[assetIndex];
                 if (artwork != null) {
@@ -909,6 +914,18 @@ float pct=Math.max(0,Math.min(100,level))/100f;
                             50f + heightUnits / 2f);
                     }
                     c.drawBitmap(artwork, null, bounds, paint);
+                } else if (style == 37) {
+                    // TEST32: visible fallback when style 38 bitmap cannot load.
+                    paint.setShader(null);
+                    paint.setStyle(Paint.Style.STROKE);
+                    paint.setStrokeWidth(5f);
+                    paint.setColor(0xFF21E8FF);
+                    c.drawRoundRect(14f, 19f, 180f, 81f, 12f, 12f, paint);
+                    paint.setColor(0xFFFF5CEC);
+                    c.drawRoundRect(18f, 23f, 176f, 77f, 10f, 10f, paint);
+                    paint.setStyle(Paint.Style.FILL);
+                    paint.setColor(0xFFFFFF33);
+                    c.drawRoundRect(181f, 39f, 193f, 61f, 3f, 3f, paint);
                 }
             } else switch(style) {
                 case 0: // aurora wave capsule
