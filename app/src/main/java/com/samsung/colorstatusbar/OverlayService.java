@@ -319,7 +319,7 @@ public class OverlayService extends AccessibilityService {
         int selectedBatteryStyle = opt("battery_style", 0, 0, 39);
         // TEST33: compact circular assets 24 and 33 to their actual diameter.
         // Other styles keep TEST32's independent width/height sliders.
-        boolean compactRound = selectedBatteryStyle == 23 || selectedBatteryStyle == 32;
+        boolean compactRound = selectedBatteryStyle == 23 || selectedBatteryStyle == 32 || selectedBatteryStyle == 31;
         // TEST34: use the requested width for bitmap circles 24/33.
         // TEST33 capped them at height+4dp, so increasing width had no effect.
         // Style 17 retains its established compact layout.
@@ -776,7 +776,7 @@ public class OverlayService extends AccessibilityService {
     static final class BatteryIcon extends View {
         private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final android.graphics.Bitmap[] test30Bitmaps = new android.graphics.Bitmap[20];
-        // TEST39: only 24, 33 and 40 cache their transparent pixel bounds.
+        // TEST40: retain TEST39's existing bounds; also cache style 32's transparent margins.
         private final Rect[] test39VisibleBounds = new Rect[20];
         private int level = -1;
         private int color = 0xFFFF8A80;
@@ -858,8 +858,8 @@ public class OverlayService extends AccessibilityService {
                 // TEST32: keep 23's double-ring transform exactly unchanged.
                 canvas.translate(w * 0.04f, h * 0.06f);
                 canvas.scale(w * 0.92f / 200f, h * 0.88f / 100f);
-            } else if (style == 16 || style == 23 || style == 32) {
-                // TEST39: icon 24/33 share 17's uniform circle mapping.
+            } else if (style == 16 || style == 23 || style == 32 || style == 31) {
+                // TEST40: 32's semicircular gauge shares 17's uniform viewport (no stretching).
                 float scale = Math.min(w / 100f, h / 100f);
                 canvas.translate(w / 2f, h / 2f);
                 canvas.scale(scale, scale);
@@ -909,7 +909,7 @@ float pct=Math.max(0,Math.min(100,level))/100f;
                     paint.setColor(Color.WHITE);
                     // TEST39: apply transparent crop only to icons 24, 33 and 40.
                     boolean roundAsset = style == 22 || style == 23 || style == 31 || style == 32;
-                    boolean correctedIcon = style == 23 || style == 32 || style == 39;
+                    boolean correctedIcon = style == 23 || style == 32 || style == 39 || style == 31;
                     Rect src = null;
                     if (correctedIcon) {
                         if (test39VisibleBounds[assetIndex] == null) {
@@ -937,6 +937,15 @@ float pct=Math.max(0,Math.min(100,level))/100f;
                     if (style == 23 || style == 32) {
                         // 24 and 33: exact same 100x100 circle viewport as 17.
                         bounds = new RectF(50f, 0f, 150f, 100f);
+                    } else if (style == 31) {
+                        // TEST40 (icon 32): fit the actual visible semicircle
+                        // inside style 17's 100x100 viewport, without deforming
+                        // the calibrated arc or clipping its lower ends.
+                        float gaugeRatio = src.width() / (float) Math.max(1, src.height());
+                        float gaugeW = gaugeRatio >= 1f ? 100f : 100f * gaugeRatio;
+                        float gaugeH = gaugeRatio >= 1f ? 100f / gaugeRatio : 100f;
+                        bounds = new RectF(100f - gaugeW * 0.5f, 50f - gaugeH * 0.5f,
+                            100f + gaugeW * 0.5f, 50f + gaugeH * 0.5f);
                     } else if (style == 39) {
                         // 40: keep ears, paws and original PNG aspect ratio.
                         float ratio = src.width() / (float) Math.max(1, src.height());
