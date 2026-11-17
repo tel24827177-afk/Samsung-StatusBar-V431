@@ -317,11 +317,15 @@ public class OverlayService extends AccessibilityService {
         int batteryHeight = opt("battery_height_" + screenKey, Math.max(19, width / 2), 16, 60);
         // TEST18: style 17 is a circular ring; avoid reserving a wide, empty battery slot.
         int selectedBatteryStyle = opt("battery_style", 0, 0, 39);
+        // TEST38: retain style 17's close-to-4G circular slot; fit cat 40 without a wide blank slot.
         int displayedBatteryWidth = (selectedBatteryStyle == 16 || selectedBatteryStyle == 20 || selectedBatteryStyle == 21 || selectedBatteryStyle == 22 || selectedBatteryStyle == 23 || selectedBatteryStyle == 30 || selectedBatteryStyle == 31 || selectedBatteryStyle == 32)
-            ? Math.min(width, batteryHeight + 6) : width;
+            ? Math.min(width, batteryHeight + 6)
+            : (selectedBatteryStyle == 39
+                ? Math.min(width, Math.round(batteryHeight * 1.45f) + 4)
+                : width);
         LinearLayout.LayoutParams batteryLp = new LinearLayout.LayoutParams(dp(displayedBatteryWidth), dp(batteryHeight));
         // TEST15: upright styles sit directly next to the 4G/5G label.
-        batteryLp.leftMargin = dp((selectedBatteryStyle == 16 || selectedBatteryStyle == 20 || selectedBatteryStyle == 21 || selectedBatteryStyle == 22 || selectedBatteryStyle == 23 || selectedBatteryStyle == 30 || selectedBatteryStyle == 31 || selectedBatteryStyle == 32) ? 2
+        batteryLp.leftMargin = dp((selectedBatteryStyle == 16 || selectedBatteryStyle == 20 || selectedBatteryStyle == 21 || selectedBatteryStyle == 22 || selectedBatteryStyle == 23 || selectedBatteryStyle == 30 || selectedBatteryStyle == 31 || selectedBatteryStyle == 32 || selectedBatteryStyle == 39) ? 2
             : (isUprightBatteryStyle(selectedBatteryStyle) ? 0 : opt("battery_spacing", 10, 0, 30)));
         batteryLp.leftMargin = Math.max(0, batteryLp.leftMargin + dp(opt("battery_x_" + screenKey, 100, 0, 200) - 100));
         indicators.addView(batteryIcon, batteryLp);
@@ -764,6 +768,8 @@ public class OverlayService extends AccessibilityService {
     static final class BatteryIcon extends View {
         private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final android.graphics.Bitmap[] test30Bitmaps = new android.graphics.Bitmap[20];
+        // TEST38: cached visible bounds for PNG 24, 33 and 40; preserves their original artwork.
+        private final Rect[] test38VisibleBounds = new Rect[20];
         private int level = -1;
         private int color = 0xFFFF8A80;
         private int numberColor = Color.WHITE;
@@ -883,10 +889,49 @@ float pct=Math.max(0,Math.min(100,level))/100f;
                     paint.setStyle(Paint.Style.FILL);
                     paint.setAlpha(255);
                     paint.setColor(Color.WHITE);
-                    // Circular/arched designs retain a square drawing box.
+                    // TEST38: 24 and 33 should fill the same circular viewport as 17.
+                    // The cat in style 40 needs transparent-padding removal but must NOT
+                    // be stretched into a circle or have its ears clipped.
                     boolean roundAsset = style == 22 || style == 23 || style == 31 || style == 32;
+                    boolean trimTransparentPadding = style == 23 || style == 32 || style == 39;
+                    Rect src = null;
+                    if (trimTransparentPadding) {
+                        if (test38VisibleBounds[assetIndex] == null) {
+                            int aw = artwork.getWidth(), ah = artwork.getHeight();
+                            int[] pixels = new int[aw * ah];
+                            artwork.getPixels(pixels, 0, aw, 0, 0, aw, ah);
+                            int minX = aw, minY = ah, maxX = -1, maxY = -1;
+                            for (int yy = 0; yy < ah; yy++) {
+                                for (int xx = 0; xx < aw; xx++) {
+                                    if ((pixels[yy * aw + xx] >>> 24) > 12) {
+                                        if (xx < minX) minX = xx;
+                                        if (xx > maxX) maxX = xx;
+                                        if (yy < minY) minY = yy;
+                                        if (yy > maxY) maxY = yy;
+                                    }
+                                }
+                            }
+                            test38VisibleBounds[assetIndex] = (maxX >= minX && maxY >= minY)
+                                ? new Rect(minX, minY, maxX + 1, maxY + 1)
+                                : new Rect(0, 0, aw, ah);
+                        }
+                        src = test38VisibleBounds[assetIndex];
+                    }
                     RectF bounds;
-                    if (roundAsset) {
+                    if (style == 23 || style == 32) {
+                        // Uniform circular scaling above is the same path as style 17.
+                        bounds = new RectF(50f, 0f, 150f, 100f);
+                    } else if (style == 39) {
+                        // Canvas for horizontal styles scales by w/200 and h/100.
+                        // Compensate in the destination box to preserve the cat's aspect ratio.
+                        float ratio = src.width() / (float) Math.max(1, src.height());
+                        float drawWidthPx = Math.min(w * 0.98f, h * 0.98f * ratio);
+                        float drawHeightPx = drawWidthPx / ratio;
+                        float halfW = 100f * drawWidthPx / Math.max(1f, w);
+                        float halfH = 50f * drawHeightPx / Math.max(1f, h);
+                        bounds = new RectF(100f - halfW, 50f - halfH,
+                            100f + halfW, 50f + halfH);
+                    } else if (roundAsset) {
                         float ratio = artwork.getWidth() / (float) artwork.getHeight();
                         float widthUnits = Math.min(100f * ratio, 188f);
                         float heightUnits = widthUnits / ratio;
@@ -901,7 +946,7 @@ float pct=Math.max(0,Math.min(100,level))/100f;
                             50f - heightUnits / 2f, 100f + widthUnits / 2f,
                             50f + heightUnits / 2f);
                     }
-                    c.drawBitmap(artwork, null, bounds, paint);
+                    c.drawBitmap(artwork, src, bounds, paint);
                 }
             } else switch(style) {
                 case 0: // aurora wave capsule
