@@ -682,7 +682,10 @@ public class OverlayService extends AccessibilityService {
         if (bluetoothIcon != null) bluetoothIcon.setColor(resolve(14, 2));
         if (soundIcon != null) soundIcon.setColor(soundIcon.isShape(SymbolIcon.MUTE)
             ? resolve(16, 4) : resolve(15, 3));
-        if (nfcIcon != null) nfcIcon.setColor(resolve(17, 5));
+        // TEST41: NFC and cellular signal keep separate saved colors and rainbow toggles.
+        // Their former shared slot 5 made both rainbow colors identical at every instant.
+        // Slot 10 offsets NFC by ~half a seven-color cycle, without changing other icons.
+        if (nfcIcon != null) nfcIcon.setColor(resolve(17, 10));
         if (vpnIcon != null) vpnIcon.setColor(resolve(18, 6));
         if (dndIcon != null) dndIcon.setColor(resolve(19, 7));
     }
