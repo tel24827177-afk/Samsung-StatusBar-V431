@@ -883,10 +883,34 @@ float pct=Math.max(0,Math.min(100,level))/100f;
                     paint.setStyle(Paint.Style.FILL);
                     paint.setAlpha(255);
                     paint.setColor(Color.WHITE);
-                    // Circular/arched designs retain a square drawing box.
+                    // TEST35: round bitmap icons 24 and 33 must behave like vector ring 17.
+                    // Trim transparent PNG padding before mapping to the same 100x100 ring viewport.
+                    boolean trueRoundBitmap = style == 23 || style == 32;
                     boolean roundAsset = style == 22 || style == 23 || style == 31 || style == 32;
+                    Rect src = null;
                     RectF bounds;
-                    if (roundAsset) {
+                    if (trueRoundBitmap) {
+                        int aw = artwork.getWidth(), ah = artwork.getHeight();
+                        int[] pixels = new int[aw * ah];
+                        artwork.getPixels(pixels, 0, aw, 0, 0, aw, ah);
+                        int minX = aw, minY = ah, maxX = -1, maxY = -1;
+                        for (int yy = 0; yy < ah; yy++) {
+                            for (int xx = 0; xx < aw; xx++) {
+                                if ((pixels[yy * aw + xx] >>> 24) > 12) {
+                                    if (xx < minX) minX = xx;
+                                    if (xx > maxX) maxX = xx;
+                                    if (yy < minY) minY = yy;
+                                    if (yy > maxY) maxY = yy;
+                                }
+                            }
+                        }
+                        if (maxX >= minX && maxY >= minY) {
+                            src = new Rect(minX, minY, maxX + 1, maxY + 1);
+                        }
+                        // Drawing coordinates are 200x100; the circle is centered at 100,50.
+                        // Preserve roundness even when the width and height sliders differ.
+                        bounds = new RectF(50f, 0f, 150f, 100f);
+                    } else if (roundAsset) {
                         float ratio = artwork.getWidth() / (float) artwork.getHeight();
                         float widthUnits = Math.min(100f * ratio, 188f);
                         float heightUnits = widthUnits / ratio;
@@ -901,7 +925,7 @@ float pct=Math.max(0,Math.min(100,level))/100f;
                             50f - heightUnits / 2f, 100f + widthUnits / 2f,
                             50f + heightUnits / 2f);
                     }
-                    c.drawBitmap(artwork, null, bounds, paint);
+                    c.drawBitmap(artwork, src, bounds, paint);
                 }
             } else switch(style) {
                 case 0: // aurora wave capsule
