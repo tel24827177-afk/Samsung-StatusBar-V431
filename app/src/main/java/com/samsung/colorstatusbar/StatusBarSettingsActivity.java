@@ -242,7 +242,7 @@ public class StatusBarSettingsActivity extends Activity {
         addCheckBox("show_nfc", "顯示 NFC（預設隱藏 N）", false);
         addCheckBox("show_vpn", "顯示 VPN", true);
         addCheckBox("show_dnd", "顯示勿擾模式", true);
-        heading("V4.31 TEST40（32號比照17號間距・保留充電動畫）｜3Minit 風格電池圖庫", 18);
+        heading("V4.31 TEST41（手機訊號與NFC七彩不同步・保留原有色盤）｜3Minit 風格電池圖庫", 18);
         note("18、19 號已依參考圖片改為直立金屬電池的向量繪製版；非照片原圖。充電時有動態效果。");
         final String[] batteryStyles = {
             "01 極光波浪", "02 V4.30 原版電池", "03 RGB 五色", "04 數字電量光環",
