@@ -921,7 +921,13 @@ float pct=Math.max(0,Math.min(100,level))/100f;
                     paint.setColor(Color.WHITE);
                     // TEST39: apply transparent crop only to icons 24, 33 and 40.
                     boolean roundAsset = style == 22 || style == 23 || style == 31 || style == 32;
-                    boolean correctedIcon = style == 23 || style == 32 || style == 39 || style == 31 || style == 37;
+                    // TEST44: only these eight additional icons match 39's visible
+                    // horizontal fill. IDs here are zero-based (21 -> 20).
+                    boolean matchStyle39 = style == 20 || style == 21 || style == 22
+                        || style == 24 || style == 26 || style == 30
+                        || style == 35 || style == 36;
+                    boolean correctedIcon = style == 23 || style == 32 || style == 39
+                        || style == 31 || style == 37 || matchStyle39;
                     Rect src = null;
                     if (correctedIcon) {
                         if (test39VisibleBounds[assetIndex] == null) {
@@ -942,9 +948,12 @@ float pct=Math.max(0,Math.min(100,level))/100f;
                             // TEST43: the original 38 PNG (1836 x 857) has
                             // about 24% combined horizontal transparent margin.
                             // Keep a 2.5% safety border around the visible glow.
-                            if (style == 37 && maxX >= minX && maxY >= minY) {
-                                int padX = Math.max(1, Math.round((maxX - minX + 1) * 0.025f));
-                                int padY = Math.max(1, Math.round((maxY - minY + 1) * 0.025f));
+                            if ((style == 37 || matchStyle39) && maxX >= minX && maxY >= minY) {
+                                // TEST44: retain an extra 1.5% of PNG halo on
+                                // the eight icons; 38 keeps its 2.5% safe edge.
+                                float safePad = style == 37 ? 0.025f : 0.015f;
+                                int padX = Math.max(1, Math.round((maxX - minX + 1) * safePad));
+                                int padY = Math.max(1, Math.round((maxY - minY + 1) * safePad));
                                 minX = Math.max(0, minX - padX);
                                 maxX = Math.min(aw - 1, maxX + padX);
                                 minY = Math.max(0, minY - padY);
@@ -969,6 +978,15 @@ float pct=Math.max(0,Math.min(100,level))/100f;
                         float gaugeH = gaugeRatio >= 1f ? 100f / gaugeRatio : 100f;
                         bounds = new RectF(100f - gaugeW * 0.5f, 50f - gaugeH * 0.5f,
                             100f + gaugeW * 0.5f, 50f + gaugeH * 0.5f);
+                    } else if (matchStyle39) {
+                        // TEST44: 39's visible image uses roughly 182/200
+                        // horizontal drawing units at the same slider values.
+                        // Render eight cropped PNGs into that same near-full
+                        // width without stretching them over 15% horizontally.
+                        float visibleRatio = src.width() / (float)Math.max(1, src.height());
+                        float widthUnits = Math.min(186f, 96f * visibleRatio * 1.15f);
+                        bounds = new RectF(100f - widthUnits / 2f, 2f,
+                            100f + widthUnits / 2f, 98f);
                     } else if (style == 37) {
                         // TEST43: fit 38's trimmed visible body into the
                         // available width/height WITHOUT distorting its aspect
