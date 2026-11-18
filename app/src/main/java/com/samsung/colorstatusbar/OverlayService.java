@@ -338,6 +338,10 @@ public class OverlayService extends AccessibilityService {
         // other icons. Give only style 38 a zero-gap slot next to 4G;
         // its cropped PNG retains a thin neon glow around the visible border.
         if (compactRound || selectedBatteryStyle == 39 || selectedBatteryStyle == 37) batteryLp.leftMargin = dp(selectedBatteryStyle == 37 ? 0 : 2);
+        // TEST45: icon 07 (blue lightning, zero-based style 6) has an upright
+        // 0dp default gap and sits too close to the 4G/5G label.
+        // Add 6dp spacing only for this style; artwork and animations unchanged.
+        if (selectedBatteryStyle == 6) batteryLp.leftMargin = dp(6);
         batteryLp.leftMargin = Math.max(0, batteryLp.leftMargin + dp(opt("battery_x_" + screenKey, 100, 0, 200) - 100));
         indicators.addView(batteryIcon, batteryLp);
         batteryIcon.setAlpha(opt("battery_opacity", 100, 20, 100) / 100f);
